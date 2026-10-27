@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FGWAPP V8 - Fleet Guard Web y Aplicación - Dashboard Definitivo</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{--bg:#07080A;--card:#121316;--card2:#1A1D22;--lime:#C6FF00;--green:#00FFA3;--border:#2D3748;--muted:#9CA3AF;--text:#fff}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;background:var(--card);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:8px}
+.logo{font-weight:800;color:var(--lime);font-size:18px;margin-bottom:20px}
+.logo span{color:var(--green);font-weight:400;font-size:11px;display:block}
+.menu-item{padding:10px 12px;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);border:1px solid transparent}
+.menu-item.active{background:rgba(198,255,0,.15);border-color:var(--lime);color:var(--lime)}
+.menu-item small{font-size:10px;color:var(--muted)}
+.main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+.topbar{display:flex;gap:12px;align-items:center}
+.kpi{display:flex;gap:12px;overflow-x:auto}
+.kpi-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;min-width:200px;flex:1}
+.kpi-card .label{font-size:10px;color:var(--muted);letter-spacing:1px}
+.kpi-card .value{font-size:24px;font-weight:800;margin-top:4px}
+.kpi-card .value span{font-size:12px;font-weight:400;color:var(--muted)}
+.charts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.chart-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px}
+.chart-card h4{font-size:11px;color:var(--muted);letter-spacing:1px}
+.gps-section{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+.gps-map{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;height:320px;position:relative;overflow:hidden}
+.gps-points{position:absolute;inset:0}
+.point{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime)}
+.filters{display:flex;gap:6px;margin-bottom:8px}
+.btn{padding:6px 12px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:11px;cursor:pointer}
+.btn.active{background:var(--lime);color:#000}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:8px;text-align:left;color:var(--muted);font-size:10px}
+td{padding:8px;border-top:1px solid var(--border)}
+.badge{padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.badge-ruta{background:rgba(198,255,0,.15);color:var(--lime)}
+.badge-base{background:rgba(0,255,163,.15);color:var(--green)}
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="logo">FGWAPP <span>Fleet Guard Web y Aplicación V8</span><span id="health" style="color:var(--green);margin-top:8px;font-size:10px">Conectando...</span></div>
+  <div class="menu-item active">📊 Dashboard <small>KPIs • Gráficas • GPS</small></div>
+  <div class="menu-item">🚛 Flota <small id="flota-count">200 unidades</small></div>
+  <div class="menu-item">⛽ Combustible <small id="comb-count">Control eficiencia</small></div>
+  <div class="menu-item">🗺️ Rutas <small>Telcel SIM</small></div>
+  <div class="menu-item">🔧 Mantenimiento <small>Ciclo preventivo</small></div>
+  <div class="menu-item">👤 Conductores <small>20 operadores</small></div>
+  <div class="menu-item">📍 GPS <small>Live tracking</small></div>
+  <div class="menu-item">📄 Reportes <small>PDF • Tablas</small></div>
+  <div class="menu-item">🤖 Asistente IA <small>Diagnóstico</small></div>
+  <div style="margin-top:auto;padding:10px;background:var(--card2);border-radius:10px;font-size:11px">
+    <div style="color:var(--muted)">SISTEMA</div>
+    <div style="color:var(--green);font-weight:700">FGWAPP V8 Python</div>
+    <div style="font-size:10px;color:var(--muted)">GDL 120 • CLN 80 • Miles capacidad</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div style="font-weight:700">DASHBOARD</div>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn active">En Ruta</button>
+      <button class="btn">En Base</button>
+      <button class="btn">En Taller</button>
+      <span id="stats-top" style="font-size:11px;color:var(--muted);margin-left:12px"></span>
+    </div>
+  </div>
+
+  <div class="kpi" id="kpi-cards">
+    <!-- KPIs se llenan con JS -->
+  </div>
+
+  <div class="charts">
+    <div class="chart-card"><h4>RENDIMIENTO DE GASOLINA - Barras por unidad</h4><canvas id="chartGas" height="140"></canvas><small style="color:var(--muted);font-size:10px">Click para expandir + tabla + imprimir</small></div>
+    <div class="chart-card"><h4>RENDIMIENTO DE FLOTA - km recorridos</h4><canvas id="chartFlota" height="140"></canvas></div>
+    <div class="chart-card"><h4>FLUJO DE CAJA - ingresos vs egresos</h4><canvas id="chartCaja" height="140"></canvas></div>
+  </div>
+
+  <div class="gps-section">
+    <div class="gps-map">
+      <div style="display:flex;justify-content:space-between"><h4 style="font-size:11px;color:var(--muted)">GPS • MAPA SIMULADO • TELCEL SIM</h4><button class="btn active" style="font-size:10px">Ver Todos</button></div>
+      <div class="gps-points" id="gps-points"></div>
+      <div style="position:absolute;bottom:10px;left:10px;font-size:10px;color:var(--muted)">GRID CON PUNTOS • CLICK UNIDAD PARA INFO + RUTA • GDL 120 • CLN 80</div>
+    </div>
+    <div class="chart-card">
+      <h4>UNIDAD SELECCIONADA</h4>
+      <div id="selected-unit" style="margin-top:12px">
+        <div style="font-size:18px;font-weight:800">FG-0013</div>
+        <div style="font-size:11px;color:var(--muted)">Volvo VNL 760 • GDL</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+          <div style="background:var(--bg);padding:8px;border-radius:8px"><div style="font-size:10px;color:var(--muted)">CONSUMO</div><div style="font-weight:700">8.53 km/l</div><div style="font-size:10px;color:var(--green)">Eficiente</div></div>
+          <div style="background:var(--bg);padding:8px;border-radius:8px"><div style="font-size:10px;color:var(--muted)">KM SIN MANTTO</div><div style="font-weight:700">13,480</div><div style="font-size:10px;color:orange">Ciclo preventivo</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'https://yjbzbfeivxkrxzlpehxj.supabase.co/rest/v1/';
+const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqYnpiZmVpdnhrcnh6bHBlaHhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTg0MDcsImV4cCI6MjEwODY5NDQwN30.LCrwlV_Wr41JBidY6IlsZg6Pflzg6CvKFcoYo3XexqU';
+
+async function loadStats(){
+  try{
+    // Usaremos backend Python cuando esté deployado, por ahora directo a Supabase REST
+    const headers = { 'apikey': ANON, 'Authorization': 'Bearer '+ANON };
+    const flotaRes = await fetch(API+'flota?select=estado,consumo_estado,mantenimiento_estado,sucursal_id&activa=eq.true&limit=1000', {headers});
+    const flota = await flotaRes.json();
+    
+    const total = flota.length;
+    const enRuta = flota.filter(f=>f.estado==='En Ruta').length;
+    const enBase = flota.filter(f=>f.estado==='En Base').length;
+    const enTaller = flota.filter(f=>f.estado==='En Taller').length;
+    const sospechoso = flota.filter(f=>f.consumo_estado==='Sospechoso').length;
+    const vencidos = flota.filter(f=>f.mantenimiento_estado==='Vencido').length;
+    
+    document.getElementById('health').textContent = `✅ ${total} LIVE • GDL 120 • CLN 80`;
+    document.getElementById('stats-top').textContent = `${total} / ${total} VISIBLES`;
+    document.getElementById('flota-count').textContent = `${total} unidades`;
+    document.getElementById('comb-count').textContent = `${sospechoso} por optimizar`;
+    
+    document.getElementById('kpi-cards').innerHTML = `
+      <div class="kpi-card"><div class="label">UNIDADES TOTALES</div><div class="value">${total} <span style="color:var(--green)">• LIVE</span></div><div style="font-size:11px;color:var(--muted)">${enRuta} Ruta • ${enBase} Base</div><canvas id="mini1" height="30"></canvas></div>
+      <div class="kpi-card"><div class="label">CONSUMO PROMEDIO</div><div class="value">10.80 <span>km/l</span></div><div style="font-size:11px;color:var(--green)">▲ +0.3 vs ayer • 15 visibles</div><div style="display:flex;gap:4px;margin-top:8px"><span class="badge" style="background:rgba(59,130,246,.15);color:#3B82F6">Bajo</span><span class="badge" style="background:rgba(198,255,0,.15);color:var(--lime)">Normal</span><span class="badge" style="background:rgba(245,158,11,.15);color:#F59E0B">Excedido</span></div></div>
+      <div class="kpi-card"><div class="label">ALERTAS CONSUMO</div><div class="value" style="color:#EF4444">${sospechoso+5} <span style="font-size:10px;background:#FBBF24;color:#000;padding:2px 6px;border-radius:10px">${sospechoso} POR OPTIMIZAR</span></div><div style="font-size:11px;color:var(--muted)">Oportunidades de mejora detectadas</div><button style="margin-top:8px;background:transparent;border:none;color:var(--lime);font-size:10px">GENERAR REPORTE PDF</button></div>
+      <div class="kpi-card"><div class="label">MANTENIMIENTO</div><div class="value">${vencidos} <span style="font-size:12px;color:orange">VENCIDOS</span></div><div style="font-size:10px"><span class="badge">Agendado</span> <span class="badge">Próx 1000km</span></div></div>
+    `;
+    
+    // Charts mock como demo
+    new Chart(document.getElementById('chartGas'), {type:'bar', data:{labels:Array.from({length:15},(_,i)=>'FG-'+String(i+1).padStart(4,'0')), datasets:[{data:Array.from({length:15},()=>5+Math.random()*5), backgroundColor:'#C6FF00'}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}}}});
+    new Chart(document.getElementById('chartFlota'), {type:'line', data:{labels:Array.from({length:10},(_,i)=>i), datasets:[{data:[20,30,25,35,30,40,35,45,40,50], borderColor:'#00FFA3', tension:.4}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}}}});
+    new Chart(document.getElementById('chartCaja'), {type:'line', data:{labels:Array.from({length:10},(_,i)=>i), datasets:[{data:[10,15,12,18,14,20,16,22,18,25], borderColor:'#FBBF24', tension:.4}, {data:[5,8,6,10,7,12,9,14,11,16], borderColor:'#EF4444', tension:.4}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}}}});
+    
+    // GPS puntos simulados GDL y CLN
+    const gpsContainer = document.getElementById('gps-points');
+    for(let i=0;i<60;i++){
+      const dot = document.createElement('div');
+      dot.className = 'point';
+      dot.style.left = (10+Math.random()*80)+'%';
+      dot.style.top = (10+Math.random()*80)+'%';
+      dot.style.background = Math.random()<0.06 ? '#EF4444' : Math.random()<0.1 ? '#FBBF24' : '#C6FF00';
+      gpsContainer.appendChild(dot);
+    }
+  }catch(e){
+    document.getElementById('health').textContent = '⚠️ Conectando... '+e.message;
+  }
+}
+loadStats();
+</script>
+</body>
+</html>
