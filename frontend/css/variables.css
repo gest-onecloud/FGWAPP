@@ -1,0 +1,8 @@
+:root{
+  --bg:#07080A; --card:#121316; --card2:#191C20;
+  --lime:#C6FF00; --green:#00FFA3; --yellow:#FBBF24; --orange:#F59E0B; --red:#EF4444; --blue:#3B82F6;
+  --border:#23262F; --muted:#8A8F98; --text:#F5F5F5;
+  --radius:16px; --radius-sm:10px; --radius-pill:999px;
+  --font: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+  --shadow: 0 4px 24px rgba(0,0,0,.4);
+}
