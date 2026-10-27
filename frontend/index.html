@@ -8,13 +8,18 @@
 <link rel="stylesheet" href="./css/variables.css">
 <link rel="stylesheet" href="./css/layout.css">
 <link rel="stylesheet" href="./css/components.css">
+<style>
+.kpi-clickable:hover{border-color:var(--lime) !important; transform:translateY(-2px); box-shadow:0 8px 32px rgba(198,255,0,.15)}
+.menu-item{user-select:none}
+#btn-volver-dashboard{display:none}
+</style>
 </head>
 <body>
 <div class="sidebar">
   <div class="logo">FGWAPP<small>Fleet Guard Web y Aplicación</small><span class="ver" id="ver">Conectando backend...</span></div>
   <div class="menu">
-    <div class="menu-item active"><b>📊 Dashboard</b><i>KPIs • GPS • Live</i></div>
-    <div class="menu-item"><b>🚛 Flota</b><i id="m-flota">200 unidades</i></div>
+    <div class="menu-item active" id="menu-dashboard" style="cursor:pointer"><b>📊 Dashboard</b><i>KPIs • GPS • Live</i></div>
+    <div class="menu-item" id="menu-flota" style="cursor:pointer"><b>🚛 Flota</b><i id="m-flota">200 unidades</i></div>
     <div class="menu-item"><b>⛽ Combustible</b><i id="m-comb">Control eficiencia</i></div>
     <div class="menu-item"><b>🗺️ Rutas</b><i>Telcel SIM</i></div>
     <div class="menu-item"><b>🔧 Mantenimiento</b><i id="m-mant">Vencidos</i></div>
@@ -27,7 +32,8 @@
     <div style="font-size:10px;color:var(--muted);letter-spacing:1px;font-weight:800">SISTEMA V8 PROFESIONAL</div>
     <div style="font-weight:900;color:var(--green);margin-top:6px">FGWAPP Python</div>
     <div style="font-size:11px;color:var(--muted);margin-top:6px" id="sys-info">GDL 120 • CLN 80 • Miles capacidad</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:10px">Arquitectura: <b style="color:var(--text)">css/ + js/ + assets/</b> • Modular</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:10px">Click en Flota → solo tabla</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:4px">Arquitectura: <b style="color:var(--text)">css/ + js/ + assets/</b> • Modular</div>
     <div style="font-size:10px;color:var(--muted);margin-top:4px">Lenguaje: <b style="color:var(--text)">Oportunidad de mejora</b></div>
   </div>
 </div>
@@ -35,12 +41,13 @@
 <div class="main">
   <div class="top">
     <div class="h1">DASHBOARD DEFINITIVO • 200 UNIDADES LIVE • PROFESIONAL</div>
-    <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap">
+    <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;align-items:center">
       <button class="btn active" data-f="En Ruta">En Ruta</button>
       <button class="btn" data-f="En Base">En Base</button>
       <button class="btn" data-f="En Taller">En Taller</button>
       <button class="btn" data-f="Disponible">Disponible</button>
       <button class="btn" data-f="">Todos</button>
+      <button class="btn" id="btn-volver-dashboard" onclick="showDashboardView()" style="background:var(--card);border-color:var(--lime);color:var(--lime)">← Volver Dashboard</button>
       <span id="live-count" style="font-size:11px;color:var(--muted);padding:8px">200/200 • 10.80 km/l</span>
     </div>
   </div>
@@ -66,7 +73,7 @@
     </div>
   </div>
 
-  <div class="card"><h4>FLOTA LIVE • TABLA • 200 UNIDADES <span id="tabla-info" style="color:var(--muted)">Cargando...</span></h4><table><thead><tr><th>PLACA</th><th>MARCA</th><th>SUCURSAL</th><th>ESTADO</th><th>CONSUMO</th><th>EFICIENCIA</th><th>KM</th></tr></thead><tbody id="tbody"></tbody></table></div>
+  <div class="card" id="tabla-card"><h4>FLOTA LIVE • TABLA • 200 UNIDADES <span id="tabla-info" style="color:var(--muted)">Cargando...</span></h4><table><thead><tr><th>PLACA</th><th>MARCA</th><th>SUCURSAL</th><th>ESTADO</th><th>CONSUMO</th><th>EFICIENCIA</th><th>KM</th></tr></thead><tbody id="tbody"></tbody></table></div>
 </div>
 
 <script type="module" src="./js/dashboard.js"></script>
