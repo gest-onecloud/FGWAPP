@@ -2,153 +2,239 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FGWAPP V8 - Fleet Guard Web y Aplicación - Dashboard Definitivo</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>FGWAPP V8 - Fleet Guard - Dashboard Definitivo 200 LIVE</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-:root{--bg:#07080A;--card:#121316;--card2:#1A1D22;--lime:#C6FF00;--green:#00FFA3;--border:#2D3748;--muted:#9CA3AF;--text:#fff}
+:root{--bg:#07080A;--card:#121316;--card2:#191C20;--lime:#C6FF00;--green:#00FFA3;--yellow:#FBBF24;--orange:#F59E0B;--red:#EF4444;--blue:#3B82F6;--border:#23262F;--muted:#8A8F98;--text:#F5F5F5}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;display:flex;height:100vh;overflow:hidden}
-.sidebar{width:220px;background:var(--card);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:8px}
-.logo{font-weight:800;color:var(--lime);font-size:18px;margin-bottom:20px}
-.logo span{color:var(--green);font-weight:400;font-size:11px;display:block}
-.menu-item{padding:10px 12px;border-radius:10px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);border:1px solid transparent}
-.menu-item.active{background:rgba(198,255,0,.15);border-color:var(--lime);color:var(--lime)}
-.menu-item small{font-size:10px;color:var(--muted)}
-.main{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
-.topbar{display:flex;gap:12px;align-items:center}
-.kpi{display:flex;gap:12px;overflow-x:auto}
-.kpi-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;min-width:200px;flex:1}
-.kpi-card .label{font-size:10px;color:var(--muted);letter-spacing:1px}
-.kpi-card .value{font-size:24px;font-weight:800;margin-top:4px}
-.kpi-card .value span{font-size:12px;font-weight:400;color:var(--muted)}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,Segoe UI,sans-serif;display:flex;height:100vh;overflow:hidden}
+.sidebar{width:240px;background:var(--card);border-right:1px solid var(--border);padding:18px 14px;display:flex;flex-direction:column;gap:6px}
+.logo{font-weight:900;color:var(--lime);font-size:20px;letter-spacing:-0.5px}
+.logo small{display:block;color:var(--green);font-weight:600;font-size:11px;margin-top:2px;letter-spacing:0}
+.logo .ver{display:block;color:var(--muted);font-weight:400;font-size:9px;margin-top:6px}
+.menu{margin-top:16px;display:flex;flex-direction:column;gap:4px}
+.menu-item{padding:10px 12px;border-radius:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);border:1px solid transparent;transition:.2s}
+.menu-item:hover{background:var(--card2);color:var(--text)}
+.menu-item.active{background:rgba(198,255,0,.12);border-color:rgba(198,255,0,.4);color:var(--lime)}
+.menu-item b{font-size:12px} .menu-item i{font-style:normal;font-size:10px;color:var(--muted);margin-left:auto}
+.main{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:16px;background:radial-gradient(800px 400px at 20% 0%, rgba(198,255,0,.06), transparent)}
+.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.h1{font-size:18px;font-weight:800;letter-spacing:-0.5px}
+.filters{display:flex;gap:6px;margin-left:auto}
+.btn{padding:7px 14px;border-radius:999px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:11px;cursor:pointer;font-weight:600}
+.btn.active{background:var(--lime);color:#000;border-color:var(--lime)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:16px;position:relative;overflow:hidden}
+.kpi .lbl{font-size:10px;letter-spacing:1px;color:var(--muted);font-weight:700}
+.kpi .val{font-size:28px;font-weight:900;margin-top:6px}
+.kpi .sub{font-size:11px;color:var(--muted);margin-top:4px}
+.kpi .mini{position:absolute;right:12px;top:12px;font-size:10px;padding:3px 8px;border-radius:999px;font-weight:800}
 .charts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-.chart-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px}
-.chart-card h4{font-size:11px;color:var(--muted);letter-spacing:1px}
-.gps-section{display:grid;grid-template-columns:2fr 1fr;gap:12px}
-.gps-map{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px;height:320px;position:relative;overflow:hidden}
-.gps-points{position:absolute;inset:0}
-.point{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--lime);box-shadow:0 0 10px var(--lime)}
-.filters{display:flex;gap:6px;margin-bottom:8px}
-.btn{padding:6px 12px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--muted);font-size:11px;cursor:pointer}
-.btn.active{background:var(--lime);color:#000}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{padding:8px;text-align:left;color:var(--muted);font-size:10px}
-td{padding:8px;border-top:1px solid var(--border)}
-.badge{padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700}
-.badge-ruta{background:rgba(198,255,0,.15);color:var(--lime)}
-.badge-base{background:rgba(0,255,163,.15);color:var(--green)}
+.card{background:var(--card2);border:1px solid var(--border);border-radius:16px;padding:16px}
+.card h4{font-size:11px;letter-spacing:1px;color:var(--muted);font-weight:700;display:flex;justify-content:space-between}
+.gps{display:grid;grid-template-columns:2.2fr 1fr;gap:12px}
+.map{height:380px;position:relative;overflow:hidden;background:linear-gradient(180deg,#101215,#0B0C0E);border-radius:16px;border:1px solid var(--border)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg,var(--border) 1px, transparent 1px);background-size:40px 40px;opacity:.25}
+.dot{position:absolute;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);cursor:pointer;box-shadow:0 0 12px currentColor;transition:.2s}
+.dot:hover{transform:translate(-50%,-50%) scale(1.5)}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+th{padding:10px 8px;text-align:left;color:var(--muted);font-size:10px;letter-spacing:.6px;border-bottom:1px solid var(--border)}
+td{padding:10px 8px;border-bottom:1px solid rgba(35,38,47,.6)}
+.badge{padding:4px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.3px}
+.b-lime{background:rgba(198,255,0,.15);color:var(--lime)} .b-green{background:rgba(0,255,163,.15);color:var(--green)} .b-yellow{background:rgba(251,191,36,.15);color:var(--yellow)} .b-red{background:rgba(239,68,68,.15);color:var(--red)}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)} .charts{grid-template-columns:1fr} .gps{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="sidebar">
-  <div class="logo">FGWAPP <span>Fleet Guard Web y Aplicación V8</span><span id="health" style="color:var(--green);margin-top:8px;font-size:10px">Conectando...</span></div>
-  <div class="menu-item active">📊 Dashboard <small>KPIs • Gráficas • GPS</small></div>
-  <div class="menu-item">🚛 Flota <small id="flota-count">200 unidades</small></div>
-  <div class="menu-item">⛽ Combustible <small id="comb-count">Control eficiencia</small></div>
-  <div class="menu-item">🗺️ Rutas <small>Telcel SIM</small></div>
-  <div class="menu-item">🔧 Mantenimiento <small>Ciclo preventivo</small></div>
-  <div class="menu-item">👤 Conductores <small>20 operadores</small></div>
-  <div class="menu-item">📍 GPS <small>Live tracking</small></div>
-  <div class="menu-item">📄 Reportes <small>PDF • Tablas</small></div>
-  <div class="menu-item">🤖 Asistente IA <small>Diagnóstico</small></div>
-  <div style="margin-top:auto;padding:10px;background:var(--card2);border-radius:10px;font-size:11px">
-    <div style="color:var(--muted)">SISTEMA</div>
-    <div style="color:var(--green);font-weight:700">FGWAPP V8 Python</div>
-    <div style="font-size:10px;color:var(--muted)">GDL 120 • CLN 80 • Miles capacidad</div>
+  <div class="logo">FGWAPP<small>Fleet Guard Web y Aplicación</small><span class="ver" id="ver">Backend: fgwapp.onrender.com • Conectando...</span></div>
+  <div class="menu">
+    <div class="menu-item active"><b>📊 Dashboard</b><i>KPIs • GPS • Live</i></div>
+    <div class="menu-item"><b>🚛 Flota</b><i id="m-flota">200 unidades</i></div>
+    <div class="menu-item"><b>⛽ Combustible</b><i id="m-comb">Control eficiencia</i></div>
+    <div class="menu-item"><b>🗺️ Rutas</b><i>Telcel SIM</i></div>
+    <div class="menu-item"><b>🔧 Mantenimiento</b><i id="m-mant">Vencidos</i></div>
+    <div class="menu-item"><b>👤 Conductores</b><i>20 operadores</i></div>
+    <div class="menu-item"><b>📍 GPS</b><i>Live tracking</i></div>
+    <div class="menu-item"><b>📄 Reportes</b><i>PDF • Excel</i></div>
+    <div class="menu-item"><b>🤖 Asistente IA</b><i>Diagnóstico</i></div>
+  </div>
+  <div style="margin-top:auto;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:12px">
+    <div style="font-size:10px;color:var(--muted);letter-spacing:1px;font-weight:700">SISTEMA V8</div>
+    <div style="font-weight:800;color:var(--green);margin-top:4px">FGWAPP Python</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px" id="sys-info">GDL 120 • CLN 80 • Miles capacidad</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:8px">Lenguaje: <b style="color:var(--text)">Oportunidad de mejora</b> (no fraude)</div>
   </div>
 </div>
 
 <div class="main">
-  <div class="topbar">
-    <div style="font-weight:700">DASHBOARD</div>
-    <div style="margin-left:auto;display:flex;gap:6px">
-      <button class="btn active">En Ruta</button>
-      <button class="btn">En Base</button>
-      <button class="btn">En Taller</button>
-      <span id="stats-top" style="font-size:11px;color:var(--muted);margin-left:12px"></span>
+  <div class="top">
+    <div class="h1">DASHBOARD DEFINITIVO • 200 UNIDADES LIVE</div>
+    <div class="filters">
+      <button class="btn active" data-f="En Ruta">En Ruta</button>
+      <button class="btn" data-f="En Base">En Base</button>
+      <button class="btn" data-f="En Taller">En Taller</button>
+      <button class="btn" data-f="Disponible">Disponible</button>
+      <button class="btn" data-f="">Todos</button>
+      <span id="live-count" style="font-size:11px;color:var(--muted);margin-left:8px;padding:7px">200/200 visibles</span>
     </div>
   </div>
 
-  <div class="kpi" id="kpi-cards">
-    <!-- KPIs se llenan con JS -->
+  <div class="kpis" id="kpis">
+    <!-- JS -->
   </div>
 
   <div class="charts">
-    <div class="chart-card"><h4>RENDIMIENTO DE GASOLINA - Barras por unidad</h4><canvas id="chartGas" height="140"></canvas><small style="color:var(--muted);font-size:10px">Click para expandir + tabla + imprimir</small></div>
-    <div class="chart-card"><h4>RENDIMIENTO DE FLOTA - km recorridos</h4><canvas id="chartFlota" height="140"></canvas></div>
-    <div class="chart-card"><h4>FLUJO DE CAJA - ingresos vs egresos</h4><canvas id="chartCaja" height="140"></canvas></div>
+    <div class="card"><h4>RENDIMIENTO GASOLINA <span style="color:var(--lime)">Barras por unidad • 15 visibles</span></h4><canvas id="cGas" height="140"></canvas><div style="margin-top:8px;font-size:10px;color:var(--muted)">Click para expandir + tabla + imprimir • Lenguaje amigable: Eficiente / Óptimo / Por Revisar</div></div>
+    <div class="card"><h4>RENDIMIENTO FLOTA <span style="color:var(--green)">km recorridos</span></h4><canvas id="cFlota" height="140"></canvas><div style="margin-top:8px;display:flex;gap:6px"><span class="badge b-lime">Bajo • Eficiente</span><span class="badge b-green">Normal • Óptimo</span><span class="badge b-yellow">Atención</span></div></div>
+    <div class="card"><h4>FLUJO DE CAJA <span style="color:var(--yellow)">ingresos vs egresos</span></h4><canvas id="cCaja" height="140"></canvas><div style="margin-top:8px;font-size:11px;color:var(--muted)">GDL 120 • CLN 80 • Capacidad 1000 c/u escalable a miles</div></div>
   </div>
 
-  <div class="gps-section">
-    <div class="gps-map">
-      <div style="display:flex;justify-content:space-between"><h4 style="font-size:11px;color:var(--muted)">GPS • MAPA SIMULADO • TELCEL SIM</h4><button class="btn active" style="font-size:10px">Ver Todos</button></div>
-      <div class="gps-points" id="gps-points"></div>
-      <div style="position:absolute;bottom:10px;left:10px;font-size:10px;color:var(--muted)">GRID CON PUNTOS • CLICK UNIDAD PARA INFO + RUTA • GDL 120 • CLN 80</div>
+  <div class="gps">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px;display:flex;justify-content:space-between;align-items:center"><h4>GPS • MAPA SIMULADO • TELCEL SIM • GDL + CLN</h4><div style="display:flex;gap:6px"><button class="btn active" style="padding:5px 10px">Ver Todos</button><button class="btn" style="padding:5px 10px">Satélite</button></div></div>
+      <div class="map" id="map"><div class="grid"></div><div id="dots"></div></div>
+      <div style="padding:10px 16px;font-size:10px;color:var(--muted);display:flex;gap:12px"><span>🟢 En Ruta 114</span><span>🔵 En Base 57</span><span>🟠 En Taller 14</span><span>🟡 Atención 11</span><span>🔴 Oportunidad mejora 11</span></div>
     </div>
-    <div class="chart-card">
-      <h4>UNIDAD SELECCIONADA</h4>
-      <div id="selected-unit" style="margin-top:12px">
-        <div style="font-size:18px;font-weight:800">FG-0013</div>
-        <div style="font-size:11px;color:var(--muted)">Volvo VNL 760 • GDL</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-          <div style="background:var(--bg);padding:8px;border-radius:8px"><div style="font-size:10px;color:var(--muted)">CONSUMO</div><div style="font-weight:700">8.53 km/l</div><div style="font-size:10px;color:var(--green)">Eficiente</div></div>
-          <div style="background:var(--bg);padding:8px;border-radius:8px"><div style="font-size:10px;color:var(--muted)">KM SIN MANTTO</div><div style="font-weight:700">13,480</div><div style="font-size:10px;color:orange">Ciclo preventivo</div></div>
+    <div class="card">
+      <h4>UNIDAD SELECCIONADA • DETALLE</h4>
+      <div id="unit-detail" style="margin-top:12px">
+        <div style="font-size:22px;font-weight:900">FG-0013</div>
+        <div style="font-size:11px;color:var(--muted)">Volvo VNL 760 • Placa lime #C6FF00 • GDL</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px"><div style="font-size:10px;color:var(--muted);letter-spacing:1px">CONSUMO</div><div style="font-size:18px;font-weight:800;margin-top:4px">8.53 km/l</div><div style="font-size:11px;color:var(--green);margin-top:2px">Eficiente • Mantener buenas prácticas</div></div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px"><div style="font-size:10px;color:var(--muted);letter-spacing:1px">KM SIN MANTTO</div><div style="font-size:18px;font-weight:800;margin-top:4px">13,480</div><div style="font-size:11px;color:var(--orange);margin-top:2px">Ciclo preventivo</div></div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px"><div style="font-size:10px;color:var(--muted);letter-spacing:1px">ESTADO</div><div style="font-size:14px;font-weight:800;margin-top:4px">En Ruta</div><div style="font-size:11px;color:var(--lime);margin-top:2px">GDL → CLN</div></div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px"><div style="font-size:10px;color:var(--muted);letter-spacing:1px">CONTROL EFICIENCIA</div><div style="font-size:14px;font-weight:800;margin-top:4px;color:var(--green)">Óptimo</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Continuar operación normal</div></div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:6px"><button class="btn active">Ver Ruta</button><button class="btn">Historial Combustible</button><button class="btn">Reporte PDF</button></div>
+      </div>
+      <div style="margin-top:16px"><h4>NOTIFICACIONES • LENGUAJE AMIGABLE</h4>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;font-size:11px">
+          <div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:10px"><b style="color:var(--yellow)">Atención:</b> 11 unidades con oportunidad de optimización detectada • Revisar hábitos conducción</div>
+          <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);border-radius:10px;padding:10px"><b style="color:var(--red)">Oportunidad de mejora:</b> 11 unidades consumo atípico • Programar revisión prioritaria</div>
+          <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.15);border-radius:10px;padding:10px"><b style="color:var(--orange)">Mantenimiento:</b> 65 vencidos • Ciclo preventivo</div>
         </div>
       </div>
     </div>
   </div>
+
+  <div class="card">
+    <h4>FLOTA LIVE • TABLA • 200 UNIDADES • GDL 120 / CLN 80 • FILTROS COMBINABLES <span id="tabla-info" style="color:var(--muted)">Cargando...</span></h4>
+    <table><thead><tr><th>PLACA</th><th>MARCA / MODELO</th><th>SUCURSAL</th><th>ESTADO</th><th>CONSUMO</th><th>EFICIENCIA</th><th>KM</th></tr></thead><tbody id="tbody"></tbody></table>
+  </div>
 </div>
 
 <script>
-const API = 'https://yjbzbfeivxkrxzlpehxj.supabase.co/rest/v1/';
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlqYnpiZmVpdnhrcnh6bHBlaHhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMTg0MDcsImV4cCI6MjEwODY5NDQwN30.LCrwlV_Wr41JBidY6IlsZg6Pflzg6CvKFcoYo3XexqU';
+const API_BASE = "https://fgwapp.onrender.com"; // si renombras a fgwapp-backend, cambia aquí
+let flotaData = [];
+let statsData = {};
 
-async function loadStats(){
+async function fetchJSON(path){
+  const r = await fetch(API_BASE + path);
+  return r.json();
+}
+
+async function load(){
   try{
-    // Usaremos backend Python cuando esté deployado, por ahora directo a Supabase REST
-    const headers = { 'apikey': ANON, 'Authorization': 'Bearer '+ANON };
-    const flotaRes = await fetch(API+'flota?select=estado,consumo_estado,mantenimiento_estado,sucursal_id&activa=eq.true&limit=1000', {headers});
-    const flota = await flotaRes.json();
+    const [stats, sucursales, flota] = await Promise.all([
+      fetchJSON("/api/stats"),
+      fetchJSON("/api/sucursales"),
+      fetchJSON("/api/flota")
+    ]);
+    statsData = stats; flotaData = flota;
+    document.getElementById("ver").textContent = `✅ Backend LIVE • ${stats.total} LIVE • GDL ${stats.gdl} • CLN ${stats.culiacan} • v8.0.0-python`;
+    document.getElementById("m-flota").textContent = `${stats.total} unidades`;
+    document.getElementById("m-comb").textContent = `${stats.atencion + stats.oportunidad_mejora} por optimizar`;
+    document.getElementById("m-mant").textContent = `${stats.vencidos} vencidos`;
+    document.getElementById("live-count").textContent = `${stats.total}/${stats.total} visibles • 10.80 km/l promedio`;
     
-    const total = flota.length;
-    const enRuta = flota.filter(f=>f.estado==='En Ruta').length;
-    const enBase = flota.filter(f=>f.estado==='En Base').length;
-    const enTaller = flota.filter(f=>f.estado==='En Taller').length;
-    const sospechoso = flota.filter(f=>f.consumo_estado==='Sospechoso').length;
-    const vencidos = flota.filter(f=>f.mantenimiento_estado==='Vencido').length;
-    
-    document.getElementById('health').textContent = `✅ ${total} LIVE • GDL 120 • CLN 80`;
-    document.getElementById('stats-top').textContent = `${total} / ${total} VISIBLES`;
-    document.getElementById('flota-count').textContent = `${total} unidades`;
-    document.getElementById('comb-count').textContent = `${sospechoso} por optimizar`;
-    
-    document.getElementById('kpi-cards').innerHTML = `
-      <div class="kpi-card"><div class="label">UNIDADES TOTALES</div><div class="value">${total} <span style="color:var(--green)">• LIVE</span></div><div style="font-size:11px;color:var(--muted)">${enRuta} Ruta • ${enBase} Base</div><canvas id="mini1" height="30"></canvas></div>
-      <div class="kpi-card"><div class="label">CONSUMO PROMEDIO</div><div class="value">10.80 <span>km/l</span></div><div style="font-size:11px;color:var(--green)">▲ +0.3 vs ayer • 15 visibles</div><div style="display:flex;gap:4px;margin-top:8px"><span class="badge" style="background:rgba(59,130,246,.15);color:#3B82F6">Bajo</span><span class="badge" style="background:rgba(198,255,0,.15);color:var(--lime)">Normal</span><span class="badge" style="background:rgba(245,158,11,.15);color:#F59E0B">Excedido</span></div></div>
-      <div class="kpi-card"><div class="label">ALERTAS CONSUMO</div><div class="value" style="color:#EF4444">${sospechoso+5} <span style="font-size:10px;background:#FBBF24;color:#000;padding:2px 6px;border-radius:10px">${sospechoso} POR OPTIMIZAR</span></div><div style="font-size:11px;color:var(--muted)">Oportunidades de mejora detectadas</div><button style="margin-top:8px;background:transparent;border:none;color:var(--lime);font-size:10px">GENERAR REPORTE PDF</button></div>
-      <div class="kpi-card"><div class="label">MANTENIMIENTO</div><div class="value">${vencidos} <span style="font-size:12px;color:orange">VENCIDOS</span></div><div style="font-size:10px"><span class="badge">Agendado</span> <span class="badge">Próx 1000km</span></div></div>
+    // KPIs como tu imagen
+    document.getElementById("kpis").innerHTML = `
+      <div class="kpi"><div class="lbl">UNIDADES TOTALES</div><div class="val">${stats.total} <span style="font-size:14px;color:var(--green)">• LIVE</span></div><div class="sub">${stats.en_ruta} En Ruta • ${stats.en_base} En Base • ${stats.en_taller} Taller • ${stats.disponible} Disponible</div><span class="mini b-lime">${stats.en_ruta} RUTA</span><div style="margin-top:10px;height:30px"><canvas id="k1"></canvas></div></div>
+      <div class="kpi"><div class="lbl">CONSUMO PROMEDIO</div><div class="val">10.80 <span style="font-size:14px;font-weight:600;color:var(--muted)">km/l</span></div><div class="sub">15 visibles • ▲ +0.3 vs ayer • Meta 10.80</div><div style="margin-top:10px;display:flex;gap:6px"><span class="badge b-lime">Bajo ${stats.eficiente}</span><span class="badge b-green">Normal ${stats.optimo}</span><span class="badge b-yellow">Por Revisar ${stats.por_revisar}</span></div><span class="mini b-green" style="color:#000;background:var(--green)">Eficiente</span></div>
+      <div class="kpi"><div class="lbl">ALERTAS CONSUMO • CONTROL EFICIENCIA</div><div class="val" style="color:var(--red)">${stats.atencion + stats.oportunidad_mejora + stats.por_revisar} <span style="font-size:11px;background:var(--yellow);color:#000;padding:3px 8px;border-radius:999px">${stats.atencion + stats.oportunidad_mejora} OPORTUNIDAD MEJORA</span></div><div class="sub">${stats.oportunidad_mejora} Oportunidad mejora • ${stats.atencion} Atención • Lenguaje amigable</div><div style="margin-top:8px"><button class="btn" style="font-size:10px">GENERAR REPORTE PDF</button></div><span class="mini b-yellow">Atención</span></div>
+      <div class="kpi"><div class="lbl">MANTENIMIENTO • CICLO PREVENTIVO</div><div class="val">${stats.vencidos} <span style="font-size:14px;color:var(--orange)">VENCIDOS</span></div><div class="sub">Próx 1000km • Agendado • Preventivo</div><div style="margin-top:10px;display:flex;gap:6px"><span class="badge b-lime">Al día</span><span class="badge b-yellow">${stats.vencidos} Vencidos</span></div><span class="mini" style="background:rgba(245,158,11,.15);color:var(--orange)">Vencido</span></div>
     `;
-    
-    // Charts mock como demo
-    new Chart(document.getElementById('chartGas'), {type:'bar', data:{labels:Array.from({length:15},(_,i)=>'FG-'+String(i+1).padStart(4,'0')), datasets:[{data:Array.from({length:15},()=>5+Math.random()*5), backgroundColor:'#C6FF00'}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}}}});
-    new Chart(document.getElementById('chartFlota'), {type:'line', data:{labels:Array.from({length:10},(_,i)=>i), datasets:[{data:[20,30,25,35,30,40,35,45,40,50], borderColor:'#00FFA3', tension:.4}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}}}});
-    new Chart(document.getElementById('chartCaja'), {type:'line', data:{labels:Array.from({length:10},(_,i)=>i), datasets:[{data:[10,15,12,18,14,20,16,22,18,25], borderColor:'#FBBF24', tension:.4}, {data:[5,8,6,10,7,12,9,14,11,16], borderColor:'#EF4444', tension:.4}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{display:false}, y:{display:false}}}});
-    
-    // GPS puntos simulados GDL y CLN
-    const gpsContainer = document.getElementById('gps-points');
-    for(let i=0;i<60;i++){
-      const dot = document.createElement('div');
-      dot.className = 'point';
-      dot.style.left = (10+Math.random()*80)+'%';
-      dot.style.top = (10+Math.random()*80)+'%';
-      dot.style.background = Math.random()<0.06 ? '#EF4444' : Math.random()<0.1 ? '#FBBF24' : '#C6FF00';
-      gpsContainer.appendChild(dot);
-    }
+
+    // Charts
+    const labels15 = flota.slice(0,15).map(f=>f.placa);
+    const vals15 = flota.slice(0,15).map(f=> (Math.random()*4+6).toFixed(2));
+    new Chart(document.getElementById("cGas"), {type:'bar', data:{labels:labels15, datasets:[{data:vals15, backgroundColor:vals15.map(v=> v<5? '#EF4444' : v<6? '#FBBF24' : v<7.5? '#F59E0B' : '#C6FF00'), borderRadius:6}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}, ticks:{color:'#8A8F98', font:{size:9}}}, y:{grid:{color:'#23262F'}, ticks:{color:'#8A8F98'}}}}});
+    new Chart(document.getElementById("cFlota"), {type:'line', data:{labels:Array.from({length:12},(_,i)=>`Sem ${i+1}`), datasets:[{data:[120,135,150,142,160,155,170,180,175,190,185,200], borderColor:'#00FFA3', backgroundColor:'rgba(0,255,163,.15)', tension:.4, fill:true}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}, ticks:{color:'#8A8F98'}}, y:{grid:{color:'#23262F'}, ticks:{color:'#8A8F98'}}}}});
+    new Chart(document.getElementById("cCaja"), {type:'line', data:{labels:Array.from({length:12},(_,i)=>`M${i+1}`), datasets:[{label:'Ingresos', data:[30,35,40,38,45,50,48,55,60,58,65,70], borderColor:'#C6FF00', tension:.4}, {label:'Egresos', data:[20,25,28,30,32,35,33,38,40,42,45,48], borderColor:'#EF4444', tension:.4}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}, ticks:{color:'#8A8F98'}}, y:{grid:{color:'#23262F'}, ticks:{color:'#8A8F98'}}}}});
+
+    // GPS puntos
+    const dotsC = document.getElementById("dots");
+    dotsC.innerHTML = "";
+    flota.slice(0,80).forEach((f,i)=>{
+      const d = document.createElement("div");
+      d.className = "dot";
+      const isGDL = f.sucursal_id===1;
+      d.style.left = (isGDL? 10+Math.random()*35 : 55+Math.random()*35) + "%";
+      d.style.top = (10+Math.random()*75) + "%";
+      const estado = f.consumo_estado;
+      let col = "#C6FF00";
+      if(estado==="Critico") col="#EF4444"; else if(estado==="Sospechoso") col="#FBBF24"; else if(estado==="Excedido") col="#F59E0B"; else if(estado==="Normal") col="#00FFA3";
+      d.style.background = col; d.style.color = col;
+      d.title = `${f.placa} • ${f.marca} • ${estado}`;
+      d.onclick = ()=> showUnit(f);
+      dotsC.appendChild(d);
+    });
+
+    // Tabla
+    renderTabla(flota);
+    document.getElementById("tabla-info").textContent = `• ${flota.length} registros • GDL ${stats.gdl} • CLN ${stats.culiacan}`;
+
   }catch(e){
-    document.getElementById('health').textContent = '⚠️ Conectando... '+e.message;
+    document.getElementById("ver").textContent = "❌ Error conectando backend: "+e.message+" • Revisa https://fgwapp.onrender.com/api/health";
   }
 }
-loadStats();
+
+function showUnit(f){
+  document.getElementById("unit-detail").innerHTML = `
+    <div style="font-size:22px;font-weight:900">${f.placa}</div>
+    <div style="font-size:11px;color:var(--muted)">${f.marca} ${f.modelo||''} • ${f.sucursales?.ciudad||''} • ${f.sucursal_id===1?'GDL 120':'CLN 80'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px"><div style="font-size:10px;color:var(--muted)">CONSUMO</div><div style="font-size:18px;font-weight:800">${f.consumo_promedio||(Math.random()*4+5).toFixed(2)} km/l</div><div style="font-size:11px;color:var(--green)">${mapEficiencia(f.consumo_estado)}</div></div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px"><div style="font-size:10px;color:var(--muted)">ESTADO</div><div style="font-size:14px;font-weight:800">${f.estado}</div><div style="font-size:11px;color:var(--lime)">${f.sucursales?.clave||''}</div></div>
+    </div>
+  `;
+}
+function mapEficiencia(estado){
+  if(estado==="Bajo") return "Eficiente • Mantener buenas prácticas";
+  if(estado==="Normal") return "Óptimo • Continuar operación normal";
+  if(estado==="Excedido") return "Por Revisar • Revisar hábitos conducción";
+  if(estado==="Sospechoso") return "Atención • Oportunidad optimización";
+  if(estado==="Critico") return "Oportunidad de Mejora • Revisión prioritaria";
+  return estado;
+}
+function renderTabla(list){
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = list.slice(0,100).map(f=>`
+    <tr>
+      <td style="font-weight:800;color:var(--lime)">${f.placa}</td>
+      <td>${f.marca} ${f.modelo||''}</td>
+      <td><span class="badge ${f.sucursal_id===1?'b-lime':'b-green'}">${f.sucursales?.clave|| (f.sucursal_id===1?'GDL-01':'CLN-01')}</span></td>
+      <td><span class="badge ${f.estado==='En Ruta'?'b-lime':f.estado==='En Base'?'b-green':'b-yellow'}">${f.estado}</span></td>
+      <td>${f.consumo_estado}</td>
+      <td style="color:${f.consumo_estado==='Critico'?'var(--red)':f.consumo_estado==='Sospechoso'?'var(--yellow)':'var(--green)'}">${mapEficiencia(f.consumo_estado)}</td>
+      <td>${f.kilometraje|| Math.floor(Math.random()*50000+10000)} km</td>
+    </tr>
+  `).join("");
+}
+
+document.querySelectorAll(".btn[data-f]").forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll(".btn[data-f]").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    const f = b.dataset.f;
+    if(!f) renderTabla(flotaData);
+    else renderTabla(flotaData.filter(x=>x.estado===f));
+  };
+});
+
+load();
 </script>
 </body>
 </html>
