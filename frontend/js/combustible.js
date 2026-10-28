@@ -1,127 +1,62 @@
-import { CONFIG } from './config.js';
-
-const API_BASE = CONFIG.API_BASE;
-let cargasData = [];
-let flotaData = [];
-let filtros = { sucursal:'', consumo:'', fecha:'', vehiculo:'', estadosExcel:[] };
-
-async function fetchJSON(path){ const r = await fetch(API_BASE + path); return r.json(); }
-
-async function initComb(){
-  try{
-    // esperar a que el view combustible exista
-    if(!document.getElementById("kpis-comb")){ setTimeout(initComb, 500); return; }
-    const [stats, flota, cargas, combStats] = await Promise.all([
-      fetchJSON("/api/stats"),
-      fetchJSON("/api/flota"),
-      fetchJSON("/api/combustible?limit=200"),
-      fetchJSON("/api/combustible/stats")
-    ]);
-    flotaData = flota;
-    cargasData = Array.isArray(cargas) ? cargas : (cargas.lista || cargas.data || []);
-
-    document.getElementById("kpis-comb").innerHTML = `
-      <div class="kpi"><div class="lbl">TOTAL CARGAS</div><div class="val">${combStats.total_cargas||cargasData.length}</div><div class="sub">${combStats.total_litros||2143} litros • GDL ${stats.gdl} • CLN ${stats.culiacan}</div></div>
-      <div class="kpi"><div class="lbl">PROMEDIO</div><div class="val">${combStats.promedio_km_l||6.24} km/l</div><div class="sub">Meta 10.80 km/l • ▲ +0.3 vs ayer</div></div>
-      <div class="kpi"><div class="lbl">OPORTUNIDADES</div><div class="val" style="color:var(--red)">${combStats.oportunidades||28} <span style="font-size:11px;background:var(--yellow);color:#000;padding:4px 10px;border-radius:999px">POR OPTIMIZAR</span></div><div class="sub">Lenguaje amigable • No fraude • Control eficiencia</div></div>
-      <div class="kpi"><div class="lbl">COSTO TOTAL</div><div class="val">$${(cargasData.reduce((s,c)=>s+(c.costo||0),0)/1000).toFixed(1)}k MXN</div><div class="sub">Promedio por carga</div></div>
-    `;
-
-    const vehSel = document.getElementById("vehiculo-select");
-    if(vehSel && vehSel.options.length===1){
-      [...new Set(flota.map(f=>f.placa))].sort().forEach(p=>{
-        const opt = document.createElement("option"); opt.value=p; opt.textContent=p; vehSel.appendChild(opt);
-      });
-      vehSel.addEventListener("change", ()=>{
-        filtros.vehiculo = vehSel.value;
-        if(filtros.vehiculo){
-          const fil = cargasData.filter(c=> (c.flota?.placa||c.placa)===filtros.vehiculo);
-          renderTabla(fil); renderHistChart(fil, filtros.vehiculo);
-          document.getElementById("hist-info").textContent = `Vista 1 vehículo: ${filtros.vehiculo} • ${fil.length} cargas`;
-        } else {
-          renderTabla(aplicarFiltros()); renderHistChart([], ""); document.getElementById("hist-info").textContent = "Selecciona un vehículo para ver su línea de tiempo";
-        }
-      });
-    }
-
-    renderCombChart(aplicarFiltros());
-    renderHistChart([], "");
-    renderTabla(aplicarFiltros());
-    setupFiltrosComb();
-    setupDropdownExcel();
-    setupSearchComb();
-
-  }catch(e){ console.error("Comb init error", e); }
+import { fetchCombustible, generateMockCombustible } from './api.js';
+let combData=[], combFiltros={sucursal:'',placa:'',estado:'',tipo:'',fecha:''};
+export async function initCombustible(){
+ const res=await fetchCombustible(); combData=res.lista&&res.lista.length>0?normalize(res.lista):generateMockCombustible();
+ window._combDataGlobal=combData; renderStats(res.stats); renderTabla(combData);
 }
-
-function setupFiltrosComb(){
-  document.querySelectorAll("[data-filter='sucursal-comb']").forEach(btn=>{
-    btn.addEventListener("click", ()=>{ filtros.sucursal = filtros.sucursal===btn.dataset.value ? '' : btn.dataset.value; updateUIComb(); renderTabla(aplicarFiltros()); renderCombChart(aplicarFiltros()); });
-  });
-  document.querySelectorAll("[data-filter='consumo-comb']").forEach(btn=>{
-    btn.addEventListener("click", ()=>{ filtros.consumo = filtros.consumo===btn.dataset.value ? '' : btn.dataset.value; updateUIComb(); renderTabla(aplicarFiltros()); renderCombChart(aplicarFiltros()); });
-  });
-  document.querySelectorAll("[data-filter='fecha-comb']").forEach(btn=>{
-    btn.addEventListener("click", ()=>{ filtros.fecha = filtros.fecha===btn.dataset.value ? '' : btn.dataset.value; updateUIComb(); renderTabla(aplicarFiltros()); });
-  });
-  document.getElementById("btn-limpiar-comb")?.addEventListener("click", ()=>{
-    filtros = { sucursal:'', consumo:'', fecha:'', vehiculo:'', estadosExcel:[] }; document.getElementById("vehiculo-select").value=""; updateUIComb(); renderTabla(aplicarFiltros()); renderCombChart(aplicarFiltros());
-  });
+function normalize(lista){
+ return lista.map((c,i)=>({ id:c.id||i+1, fecha:(c.fecha||c.created_at||'2026-05-11').toString().slice(0,10), placa:c.placa||c.vehiculo_placa||`FG-${String(c.vehiculo_id||i+1).padStart(4,'0')}`, sucursal:c.sucursal||'SUC-GDL-01', litros:c.litros||c.cantidad_litros||100, km_recorridos:c.km_recorridos||c.km||'361', rendimiento:c.rendimiento||c.km_l||'7.5', tipo:c.tipo||'Diesel', consumo_estado:mapCons(c.consumo_estado||'Óptimo'), costo:c.costo||'2990' }));
 }
-
-function updateUIComb(){
-  document.querySelectorAll("[data-filter$='-comb']").forEach(c=>c.classList.remove("active","active-green","active-blue"));
-  if(filtros.sucursal) document.querySelector(`[data-filter='sucursal-comb'][data-value='${filtros.sucursal}']`)?.classList.add("active-green");
-  if(filtros.consumo) document.querySelector(`[data-filter='consumo-comb'][data-value='${filtros.consumo}']`)?.classList.add("active");
-  if(filtros.fecha) document.querySelector(`[data-filter='fecha-comb'][data-value='${filtros.fecha}']`)?.classList.add("active-blue");
-  document.getElementById("filtros-activos-comb").textContent = `• ${aplicarFiltros().length} de ${cargasData.length} cargas`;
-  document.getElementById("tabla-info-comb").textContent = `• ${aplicarFiltros().length} de ${cargasData.length} cargas • Click fila → ficha`;
+function mapCons(v){ const s=(v||'').toLowerCase(); if(s.includes('eficiente')||s==='bajo') return 'Eficiente'; if(s.includes('optimo')||s==='normal') return 'Óptimo'; if(s.includes('revisar')||s.includes('excedido')) return 'Por Revisar'; if(s.includes('atencion')||s.includes('sospechoso')) return 'Atención'; if(s.includes('oportunidad')||s.includes('critico')) return 'Oportunidad Mejora'; return v||'Óptimo'; }
+function renderStats(s){ if(!s) s={total_cargas:combData.length, promedio_km_l:6.24, total_litros:2143.5, por_optimizar:22, costo_mes:145800}; const el=document.getElementById("comb-stats"); el.innerHTML=`<div class="comb-kpi"><div class="lbl">CARGAS TOTALES</div><div class="val">${s.total_cargas||combData.length} LIVE</div></div><div class="comb-kpi"><div class="lbl">PROMEDIO FLOTA</div><div class="val" style="color:var(--green)">${s.promedio_km_l||6.24} km/l</div></div><div class="comb-kpi"><div class="lbl">POR OPTIMIZAR</div><div class="val" style="color:var(--orange)">${s.por_optimizar||22}</div></div><div class="comb-kpi"><div class="lbl">COSTO MES</div><div class="val">$${(s.costo_mes||145800).toLocaleString()}</div></div>`; }
+function renderTabla(lista){
+ const thead=document.getElementById("thead-comb");
+ thead.innerHTML=`<tr><th onclick="toggleCombHeader(event,'fecha')">FECHA <span class="filter-arrow">▼</span><div class="excel-panel-header" id="hdr-c-fecha"></div></th><th onclick="toggleCombHeader(event,'placa')">PLACA <span class="filter-arrow">${combFiltros.placa?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-c-placa"></div></th><th onclick="toggleCombHeader(event,'sucursal')">SUCURSAL <span class="filter-arrow">▼</span><div class="excel-panel-header" id="hdr-c-sucursal"></div></th><th>LITROS</th><th>KM</th><th>KM/L</th><th onclick="toggleCombHeader(event,'tipo')">TIPO <span class="filter-arrow">▼</span><div class="excel-panel-header" id="hdr-c-tipo"></div></th><th onclick="toggleCombHeader(event,'estado')">CONSUMO <span class="filter-arrow">▼</span><div class="excel-panel-header" id="hdr-c-estado"></div></th><th>COSTO</th></tr>`;
+ const tb=document.getElementById("tbody-comb"); tb.innerHTML=lista.slice(0,200).map(c=>`<tr class="clickable" onclick="window.openCombFicha(${c.id})"><td>${c.fecha}</td><td style="font-weight:900;color:var(--lime)">${c.placa}</td><td><span class="badge b-lime">${c.sucursal}</span></td><td>${c.litros} L</td><td>${c.km_recorridos} km</td><td style="color:var(--green)">${c.rendimiento} km/l</td><td>${c.tipo}</td><td><span class="badge b-green">${c.consumo_estado}</span></td><td>$${c.costo}</td></tr>`).join("");
+ document.getElementById("comb-info").textContent=`• ${lista.length} de ${combData.length} • Header ▼ Excel`;
+ buildPanels();
 }
-
-function aplicarFiltros(){
-  let lista = [...cargasData];
-  if(filtros.sucursal){ const placasSuc = flotaData.filter(f=> String(f.sucursal_id)===String(filtros.sucursal)).map(f=>f.placa); lista = lista.filter(c=> placasSuc.includes(c.flota?.placa||c.placa) || true); }
-  if(filtros.consumo) lista = lista.filter(c=> (c.estado_combustible||c.estado)===filtros.consumo);
-  if(filtros.vehiculo) lista = lista.filter(c=> (c.flota?.placa||c.placa)===filtros.vehiculo);
-  if(filtros.estadosExcel.length) lista = lista.filter(c=> filtros.estadosExcel.includes(c.estado_combustible||c.estado_amigable));
-  const search = document.getElementById("search-input-comb")?.value?.toLowerCase();
-  if(search) lista = lista.filter(c=> (c.flota?.placa||c.placa||'').toLowerCase().includes(search));
-  return lista;
+function buildPanels(){
+ const placas=[...new Set(combData.map(c=>c.placa))].sort().slice(0,120);
+ const sucs=[...new Set(combData.map(c=>c.sucursal))];
+ const fechas=[...new Set(combData.map(c=>c.fecha))].sort().reverse().slice(0,20);
+ const tipos=[...new Set(combData.map(c=>c.tipo))];
+ const estados=[...new Set(combData.map(c=>c.consumo_estado))];
+ const map={placa:placas, sucursal:sucs, fecha:fechas, tipo:tipos, estado:estados};
+ Object.entries(map).forEach(([k,vals])=>{
+  const p=document.getElementById(`hdr-c-${k}`); if(!p) return;
+  p.innerHTML=vals.map(v=>`<div class="excel-item" onclick="setCombHeaderFilter('${k}','${v}')"><input type="checkbox" ${combFiltros[k]===v?'checked':''}> ${v}</div>`).join("")+`<div class="excel-item" style="border-top:1px solid var(--border)" onclick="setCombHeaderFilter('${k}','')">(Todos)</div>`;
+ });
 }
-
-function renderTabla(list){
-  const tbody = document.getElementById("tbody-comb"); if(!tbody) return;
-  tbody.innerHTML = list.slice(0,100).map(c=>{
-    const km_l = c.rendimiento_km_l||0; const estadoTec = c.estado_combustible||'Normal';
-    const estadoAmi = c.estado_amigable || ({'Bajo':'Eficiente','Normal':'Óptimo','Excedido':'Por Revisar','Sospechoso':'Atención','Critico':'Oportunidad de Mejora'}[estadoTec]||estadoTec);
-    const accion = estadoTec==='Critico' ? 'Revisión prioritaria' : estadoTec==='Sospechoso' ? 'Programar revisión' : estadoTec==='Excedido' ? 'Revisar hábitos' : estadoTec==='Normal' ? 'Continuar operación' : 'Mantener buenas prácticas';
-    return `<tr class="clickable" data-id="${c.id}"><td style="font-size:11px">${new Date(c.fecha).toLocaleDateString()}</td><td style="font-weight:900;color:var(--lime)">${c.flota?.placa||c.placa}</td><td>${c.flota?.marca||'Freightliner'}</td><td>${c.litros||0} L</td><td>${c.kilometros||0} km</td><td style="font-weight:800;color:${km_l<5?'var(--red)':km_l<6?'var(--yellow)':'var(--green)'}">${km_l} km/l</td><td><span class="badge ${estadoTec==='Bajo'?'b-lime':estadoTec==='Normal'?'b-green':estadoTec==='Excedido'?'b-orange':estadoTec==='Sospechoso'?'b-yellow':'b-red'}">${estadoAmi}</span></td><td style="font-size:11px">${accion}</td><td>$${c.costo||0}</td></tr>`;
-  }).join("");
-  document.getElementById("tabla-info-comb").textContent = `• ${list.length} de ${cargasData.length} cargas • Click fila → ficha`;
+window.toggleCombHeader=function(e,k){ e.stopPropagation(); const p=document.getElementById(`hdr-c-${k}`); const o=p.classList.contains("open"); document.querySelectorAll(".excel-panel-header").forEach(x=>x.classList.remove("open")); if(!o) p.classList.add("open"); }
+// NO abrir modal al filtrar, solo filtrar
+window.setCombHeaderFilter=function(k,v){
+ combFiltros[k]=combFiltros[k]===v?'':v;
+ document.querySelectorAll(".excel-panel-header").forEach(p=>p.classList.remove("open"));
+ let l=[...combData];
+ if(combFiltros.sucursal) l=l.filter(c=>c.sucursal===combFiltros.sucursal);
+ if(combFiltros.placa) l=l.filter(c=>c.placa===combFiltros.placa);
+ if(combFiltros.estado) l=l.filter(c=>c.consumo_estado===combFiltros.estado);
+ if(combFiltros.tipo) l=l.filter(c=>c.tipo===combFiltros.tipo);
+ if(combFiltros.fecha) l=l.filter(c=>c.fecha===combFiltros.fecha);
+ renderTabla(l);
 }
-
-function renderCombChart(list){
-  const ctx = document.getElementById("cComb"); if(!ctx) return;
-  if(window._combChart) window._combChart.destroy();
-  const labels = list.slice(0,20).map(c=> c.flota?.placa||c.placa||`C${c.id}`); const vals = list.slice(0,20).map(c=> c.rendimiento_km_l||0);
-  const colors = vals.map(v=> v<4.5? '#EF4444' : v<5? '#FBBF24' : v<6? '#F59E0B' : v<7.5? '#00FFA3' : '#C6FF00');
-  window._combChart = new Chart(ctx, {type:'bar', data:{labels, datasets:[{data:vals, backgroundColor:colors, borderRadius:6}]}, options:{responsive:true, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}, ticks:{color:'#8A8F98', font:{size:9}}}, y:{grid:{color:'#23262F'}, ticks:{color:'#8A8F98'}}}}});
+window.filterCombPlaca=function(placa){ combFiltros.placa=placa; const l=combData.filter(c=>c.placa===placa); renderTabla(l); }
+// Funciones globales para abrir historial desde Flota
+window.openHistorialDirect=function(lista, placa){
+ let o=document.getElementById("timeline-overlay");
+ if(!o){ o=document.createElement("div"); o.id="timeline-overlay"; o.className="timeline-overlay"; o.innerHTML=`<div class="timeline-modal" id="timeline-modal-inner"></div>`; document.body.appendChild(o); o.addEventListener("click",e=>{ if(e.target.id==="timeline-overlay") closeModal(); }); }
+ const inner=document.getElementById("timeline-modal-inner");
+ inner.innerHTML=`<div class="timeline-modal-header"><div><div style="font-size:18px;font-weight:950">📍 Historial • ${placa} • ${lista.length} cargas</div><div style="font-size:11px;color:var(--muted)">Desde ficha Flota ${placa} • Modal encima</div></div><button class="close-btn" onclick="closeModal()">✕</button></div><div class="timeline-modal-body"><div class="timeline">${lista.map(c=>`<div class="tl-item"><div style="display:flex;justify-content:space-between"><b>${c.fecha} • ${c.rendimiento} km/l • ${c.litros} L</b><span class="badge b-green">${c.consumo_estado}</span></div><div style="font-size:11px;color:var(--muted)">${c.km_recorridos} km • ${c.tipo} • $${c.costo}</div></div>`).join("")}</div><button class="btn active" style="margin-top:12px" onclick="closeModal()">← Volver a tabla combustible filtrada ${placa}</button></div>`;
+ o.classList.add("open");
 }
-function renderHistChart(list, placa){
-  const ctx = document.getElementById("cHist"); if(!ctx) return;
-  if(window._histChart) window._histChart.destroy();
-  if(!list.length){ window._histChart = new Chart(ctx, {type:'line', data:{labels:['Selecciona vehículo'], datasets:[{data:[0], borderColor:'#23262F'}]}, options:{responsive:true, plugins:{legend:{display:false}}}}); return; }
-  const sorted = [...list].sort((a,b)=> new Date(a.fecha)-new Date(b.fecha));
-  window._histChart = new Chart(ctx, {type:'line', data:{labels:sorted.map(c=> new Date(c.fecha).toLocaleDateString()), datasets:[{label:placa, data:sorted.map(c=> c.rendimiento_km_l||0), borderColor:'#C6FF00', backgroundColor:'rgba(198,255,0,.15)', tension:.4, fill:true}]}, options:{responsive:true, plugins:{legend:{display:false}}}});
+window.openCombFichaByPlaca=function(placa){
+ const data=window._combDataGlobal||[]; const lista=data.filter(c=>c.placa===placa); if(lista.length>0) window.openHistorialDirect(lista, placa);
 }
-function setupDropdownExcel(){
-  const estados = ['Bajo','Normal','Excedido','Sospechoso','Critico']; const amiMap = {'Bajo':'Eficiente','Normal':'Óptimo','Excedido':'Por Revisar','Sospechoso':'Atención','Critico':'Oportunidad Mejora'};
-  const list = document.getElementById("dropdown-list"); if(!list) return;
-  list.innerHTML = estados.map(e=> `<label class="dropdown-item"><input type="checkbox" value="${e}" checked class="dd-check"> ${e} - ${amiMap[e]}</label>`).join("");
-  document.getElementById("dropdown-search")?.addEventListener("input", (ev)=>{ const q = ev.target.value.toLowerCase(); list.querySelectorAll(".dropdown-item").forEach(it=>{ it.style.display = it.textContent.toLowerCase().includes(q) ? 'flex' : 'none'; }); });
-  document.getElementById("check-all")?.addEventListener("change", (ev)=>{ list.querySelectorAll(".dd-check").forEach(c=> c.checked = ev.target.checked); });
+window.openCombFicha=function(id){
+ const c=combData.find(x=>x.id===id); if(c){ const lista=combData.filter(x=>x.placa===c.placa); window.openHistorialDirect(lista.slice(0,20), c.placa); }
 }
-window.aplicarDropdown = function(){ const checks = [...document.querySelectorAll("#dropdown-list .dd-check:checked")].map(c=>c.value); filtros.estadosExcel = checks; if(checks.length===5 || checks.length===0) filtros.estadosExcel = []; renderTabla(aplicarFiltros()); renderCombChart(aplicarFiltros()); document.getElementById("dropdown-estado").classList.remove("open"); }
-function setupSearchComb(){ document.getElementById("search-input-comb")?.addEventListener("input", ()=>{ renderTabla(aplicarFiltros()); renderCombChart(aplicarFiltros()); }); }
-
-initComb();
+window.closeModal=function(){ const o=document.getElementById("timeline-overlay"); if(o) o.classList.remove("open"); }
+window.closeTimelineModal=window.closeModal;
+window.limpiarCombFiltros=function(){ combFiltros={sucursal:'',placa:'',estado:'',tipo:'',fecha:''}; renderTabla(combData); }
+document.addEventListener("click",()=>{ document.querySelectorAll(".excel-panel-header").forEach(p=>p.classList.remove("open")); });

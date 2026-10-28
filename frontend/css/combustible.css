@@ -1,12 +1,13 @@
-/* Capa 2 Combustible - dentro de index.html SPA */
-.filter-select{background:var(--card2);border:1px solid var(--border);border-radius:999px;padding:7px 14px;color:var(--text);font-size:12px;font-weight:600;min-width:180px}
-.dropdown{position:relative}
-.dropdown-content{display:none;position:absolute;right:0;top:36px;background:var(--card2);border:1px solid var(--border);border-radius:14px;min-width:240px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:25}
-.dropdown.open .dropdown-content{display:block}
-.dropdown-item{display:flex;gap:8px;align-items:center;padding:6px 10px;font-size:12px;cursor:pointer;border-radius:8px}
-.dropdown-item:hover{background:var(--card)}
-#search-input-comb{background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:7px 14px;color:var(--text);font-size:12px;width:200px}
-@media(max-width:768px){
-  #search-input-comb{width:100%}
-  .filter-select{width:100%}
-}
+.comb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:14px}
+.comb-kpi{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px}
+.comb-kpi .lbl{font-size:10px;color:var(--muted);font-weight:900;letter-spacing:1px}
+.comb-kpi .val{font-size:22px;font-weight:950;margin-top:6px}
+.comb-kpi .sub{font-size:11px;color:var(--muted);margin-top:6px}
+.timeline{display:flex;flex-direction:column;gap:0;position:relative;margin-left:12px;border-left:2px dashed rgba(198,255,0,.25);padding-left:16px}
+.tl-item{position:relative;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px}
+.tl-item::before{content:"";position:absolute;left:-21px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--lime);border:2px solid var(--bg)}
+.timeline-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+.timeline-overlay.open{display:flex}
+.timeline-modal{background:#1C212E;border:1px solid var(--border);border-radius:20px;max-width:720px;width:100%;max-height:85vh;overflow-y:auto}
+.timeline-modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid var(--border)}
+.timeline-modal-body{padding:16px}
