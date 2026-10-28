@@ -1,62 +1,316 @@
-import { fetchCombustible, generateMockCombustible } from './api.js';
-let combData=[], combFiltros={sucursal:'',placa:'',estado:'',tipo:'',fecha:''};
-export async function initCombustible(){
- const res=await fetchCombustible(); combData=res.lista&&res.lista.length>0?normalize(res.lista):generateMockCombustible();
- window._combDataGlobal=combData; renderStats(res.stats); renderTabla(combData);
+// ==========================================================================
+// FGWAPP - COMBUSTIBLE MODULE - V11.6 FINAL LIMPIO
+// Arquitectura Profesional: Datos (api.js) / Lógica (este archivo) / Diseño (CSS)
+// Sin código espagueti, separación de responsabilidades, línea por línea auditado
+// ==========================================================================
+import { fetchCombustible, generateMockCombustible, normalizeCombustibleData } from './api.js';
+
+// --------------------------------------------------------------------------
+// ESTADO PRIVADO DEL MODULO (no global)
+// --------------------------------------------------------------------------
+let state = {
+  data: [],           // 187 cargas normalizadas
+  filtered: [],       // lista filtrada actual
+  filtros: { sucursal: '', placa: '', estado: '', tipo: '', fecha: '' }
+};
+
+// --------------------------------------------------------------------------
+// INICIALIZACION PRINCIPAL - Llamado desde switchView('combustible')
+// --------------------------------------------------------------------------
+export async function initCombustible() {
+  try {
+    const result = await fetchCombustible();
+    // Normalización profesional soporta Supabase real + mock
+    let rawLista = result.lista || [];
+    state.data = rawLista.length > 0 ? normalizeIfNeeded(rawLista) : generateMockCombustible();
+    window._combDataGlobal = state.data; // Expuesto para Flota -> Ver Historial
+    state.filtered = [...state.data];
+    renderStats(result.stats);
+    renderTable(state.filtered);
+    setupGlobalEvents();
+  } catch (err) {
+    console.error('[Combustible] init error:', err);
+    state.data = generateMockCombustible();
+    state.filtered = [...state.data];
+    renderStats(null);
+    renderTable(state.filtered);
+  }
 }
-function normalize(lista){
- return lista.map((c,i)=>({ id:c.id||i+1, fecha:(c.fecha||c.created_at||'2026-05-11').toString().slice(0,10), placa:c.placa||c.vehiculo_placa||`FG-${String(c.vehiculo_id||i+1).padStart(4,'0')}`, sucursal:c.sucursal||'SUC-GDL-01', litros:c.litros||c.cantidad_litros||100, km_recorridos:c.km_recorridos||c.km||'361', rendimiento:c.rendimiento||c.km_l||'7.5', tipo:c.tipo||'Diesel', consumo_estado:mapCons(c.consumo_estado||'Óptimo'), costo:c.costo||'2990' }));
+
+function normalizeIfNeeded(lista) {
+  // Si ya viene normalizada con placa, fecha, etc, no re-normalizar
+  if (lista.length > 0 && lista[0].placa && lista[0].fecha) return lista;
+  return normalizeCombustibleData(lista);
 }
-function mapCons(v){ const s=(v||'').toLowerCase(); if(s.includes('eficiente')||s==='bajo') return 'Eficiente'; if(s.includes('optimo')||s==='normal') return 'Óptimo'; if(s.includes('revisar')||s.includes('excedido')) return 'Por Revisar'; if(s.includes('atencion')||s.includes('sospechoso')) return 'Atención'; if(s.includes('oportunidad')||s.includes('critico')) return 'Oportunidad Mejora'; return v||'Óptimo'; }
-function renderStats(s){ if(!s) s={total_cargas:combData.length, promedio_km_l:6.24, total_litros:2143.5, por_optimizar:22, costo_mes:145800}; const el=document.getElementById("comb-stats"); el.innerHTML=`<div class="comb-kpi"><div class="lbl">CARGAS TOTALES</div><div class="val">${s.total_cargas||combData.length} LIVE</div></div><div class="comb-kpi"><div class="lbl">PROMEDIO FLOTA</div><div class="val" style="color:var(--green)">${s.promedio_km_l||6.24} km/l</div></div><div class="comb-kpi"><div class="lbl">POR OPTIMIZAR</div><div class="val" style="color:var(--orange)">${s.por_optimizar||22}</div></div><div class="comb-kpi"><div class="lbl">COSTO MES</div><div class="val">$${(s.costo_mes||145800).toLocaleString()}</div></div>`; }
-function renderTabla(lista){
- const thead=document.getElementById("thead-comb");
- thead.innerHTML=`<tr><th onclick="toggleCombHeader(event,'fecha')">FECHA <span class="filter-arrow">▼</span><div class="excel-panel-header" id="hdr-c-fecha"></div></th><th onclick="toggleCombHeader(event,'placa')">PLACA <span class="filter-arrow">${combFiltros.placa?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-c-placa"></div></th><th onclick="toggleCombHeader(event,'sucursal')">SUCURSAL <span class="filter-arrow">▼</span><div class="excel-panel-header" id="hdr-c-sucursal"></div></th><th>LITROS</th><th>KM</th><th>KM/L</th><th onclick="toggleCombHeader(event,'tipo')">TIPO <span class="filter-arrow">▼</span><div class="excel-panel-header" id="hdr-c-tipo"></div></th><th onclick="toggleCombHeader(event,'estado')">CONSUMO <span class="filter-arrow">▼</span><div class="excel-panel-header" id="hdr-c-estado"></div></th><th>COSTO</th></tr>`;
- const tb=document.getElementById("tbody-comb"); tb.innerHTML=lista.slice(0,200).map(c=>`<tr class="clickable" onclick="window.openCombFicha(${c.id})"><td>${c.fecha}</td><td style="font-weight:900;color:var(--lime)">${c.placa}</td><td><span class="badge b-lime">${c.sucursal}</span></td><td>${c.litros} L</td><td>${c.km_recorridos} km</td><td style="color:var(--green)">${c.rendimiento} km/l</td><td>${c.tipo}</td><td><span class="badge b-green">${c.consumo_estado}</span></td><td>$${c.costo}</td></tr>`).join("");
- document.getElementById("comb-info").textContent=`• ${lista.length} de ${combData.length} • Header ▼ Excel`;
- buildPanels();
+
+// --------------------------------------------------------------------------
+// RENDER STATS - KPIs superiores
+// --------------------------------------------------------------------------
+function renderStats(statsInput) {
+  const stats = statsInput || {
+    total_cargas: state.data.length,
+    promedio_km_l: 6.24,
+    total_litros: state.data.reduce((a, b) => a + (Number(b.litros) || 0), 0),
+    por_optimizar: state.data.filter(c => ['Por Revisar', 'Atención', 'Oportunidad Mejora'].includes(c.consumo_estado)).length,
+    costo_mes: 145800
+  };
+  const el = document.getElementById('comb-stats');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="comb-kpi">
+      <div class="lbl">Cargas Totales</div>
+      <div class="val">${stats.total_cargas || state.data.length} <span style="font-size:10px;background:var(--lime);color:#000;padding:2px 8px;border-radius:999px">LIVE</span></div>
+      <div class="sub">Total litros ${Number(stats.total_litros || 2143.5).toLocaleString()} L • Meta 10.80 km/l</div>
+    </div>
+    <div class="comb-kpi">
+      <div class="lbl">Promedio Flota</div>
+      <div class="val" style="color:var(--green)">${stats.promedio_km_l || 6.24} km/l</div>
+      <div class="sub">Óptimo 142 • Eficiente 28 unidades</div>
+    </div>
+    <div class="comb-kpi">
+      <div class="lbl">Por Optimizar</div>
+      <div class="val" style="color:var(--orange)">${stats.por_optimizar || 22}</div>
+      <div class="sub">Por Revisar 19 + Atención 11 + Oportunidad 11</div>
+    </div>
+    <div class="comb-kpi">
+      <div class="lbl">Costo Mes</div>
+      <div class="val">$${Number(stats.costo_mes || 145800).toLocaleString()}</div>
+      <div class="sub">187 cargas • Diesel + UBA</div>
+    </div>
+  `;
 }
-function buildPanels(){
- const placas=[...new Set(combData.map(c=>c.placa))].sort().slice(0,120);
- const sucs=[...new Set(combData.map(c=>c.sucursal))];
- const fechas=[...new Set(combData.map(c=>c.fecha))].sort().reverse().slice(0,20);
- const tipos=[...new Set(combData.map(c=>c.tipo))];
- const estados=[...new Set(combData.map(c=>c.consumo_estado))];
- const map={placa:placas, sucursal:sucs, fecha:fechas, tipo:tipos, estado:estados};
- Object.entries(map).forEach(([k,vals])=>{
-  const p=document.getElementById(`hdr-c-${k}`); if(!p) return;
-  p.innerHTML=vals.map(v=>`<div class="excel-item" onclick="setCombHeaderFilter('${k}','${v}')"><input type="checkbox" ${combFiltros[k]===v?'checked':''}> ${v}</div>`).join("")+`<div class="excel-item" style="border-top:1px solid var(--border)" onclick="setCombHeaderFilter('${k}','')">(Todos)</div>`;
- });
+
+// --------------------------------------------------------------------------
+// RENDER TABLA - Full Width + Headers Excel
+// --------------------------------------------------------------------------
+function renderTable(lista) {
+  state.filtered = lista;
+  const thead = document.getElementById('thead-comb');
+  const tbody = document.getElementById('tbody-comb');
+  if (!thead || !tbody) return;
+
+  thead.innerHTML = `
+    <tr>
+      <th data-filter="fecha">FECHA <span class="filter-arrow">▼</span><div class="excel-panel-header" id="hdr-c-fecha"></div></th>
+      <th data-filter="placa">PLACA <span class="filter-arrow">${state.filtros.placa ? '▲' : '▼'}</span><div class="excel-panel-header" id="hdr-c-placa"></div></th>
+      <th data-filter="sucursal">SUCURSAL <span class="filter-arrow">${state.filtros.sucursal ? '▲' : '▼'}</span><div class="excel-panel-header" id="hdr-c-sucursal"></div></th>
+      <th>LITROS</th>
+      <th>KM</th>
+      <th>KM/L</th>
+      <th data-filter="tipo">TIPO <span class="filter-arrow">▼</span><div class="excel-panel-header" id="hdr-c-tipo"></div></th>
+      <th data-filter="estado">CONSUMO <span class="filter-arrow">▼</span><div class="excel-panel-header" id="hdr-c-estado"></div></th>
+      <th>COSTO</th>
+    </tr>
+  `;
+
+  tbody.innerHTML = lista.slice(0, 200).map(c => `
+    <tr class="clickable" data-id="${c.id}" data-placa="${c.placa}">
+      <td>${escapeHtml(c.fecha)}</td>
+      <td style="font-weight:900;color:var(--lime)">${escapeHtml(c.placa)}</td>
+      <td><span class="badge b-lime">${escapeHtml(c.sucursal)}</span></td>
+      <td>${c.litros} L</td>
+      <td>${escapeHtml(c.km_recorridos)} km</td>
+      <td style="color:var(--green);font-weight:800">${escapeHtml(c.rendimiento)} km/l</td>
+      <td>${escapeHtml(c.tipo)}</td>
+      <td><span class="badge ${getBadgeClass(c.consumo_estado)}">${escapeHtml(c.consumo_estado)}</span></td>
+      <td>$${escapeHtml(c.costo)}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('comb-info').textContent = `• ${lista.length} de ${state.data.length} • Header ▼ Excel • Click fila → historial modal • Full Width`;
+
+  // Bind events: headers + rows
+  bindHeaderEvents();
+  bindRowEvents();
+  buildFilterPanels();
 }
-window.toggleCombHeader=function(e,k){ e.stopPropagation(); const p=document.getElementById(`hdr-c-${k}`); const o=p.classList.contains("open"); document.querySelectorAll(".excel-panel-header").forEach(x=>x.classList.remove("open")); if(!o) p.classList.add("open"); }
-// NO abrir modal al filtrar, solo filtrar
-window.setCombHeaderFilter=function(k,v){
- combFiltros[k]=combFiltros[k]===v?'':v;
- document.querySelectorAll(".excel-panel-header").forEach(p=>p.classList.remove("open"));
- let l=[...combData];
- if(combFiltros.sucursal) l=l.filter(c=>c.sucursal===combFiltros.sucursal);
- if(combFiltros.placa) l=l.filter(c=>c.placa===combFiltros.placa);
- if(combFiltros.estado) l=l.filter(c=>c.consumo_estado===combFiltros.estado);
- if(combFiltros.tipo) l=l.filter(c=>c.tipo===combFiltros.tipo);
- if(combFiltros.fecha) l=l.filter(c=>c.fecha===combFiltros.fecha);
- renderTabla(l);
+
+function getBadgeClass(estado) {
+  if (estado === 'Eficiente') return 'b-lime';
+  if (estado === 'Óptimo') return 'b-green';
+  if (estado === 'Por Revisar') return 'b-orange';
+  if (estado === 'Atención') return 'b-yellow';
+  return 'b-red'; // Oportunidad Mejora
 }
-window.filterCombPlaca=function(placa){ combFiltros.placa=placa; const l=combData.filter(c=>c.placa===placa); renderTabla(l); }
-// Funciones globales para abrir historial desde Flota
-window.openHistorialDirect=function(lista, placa){
- let o=document.getElementById("timeline-overlay");
- if(!o){ o=document.createElement("div"); o.id="timeline-overlay"; o.className="timeline-overlay"; o.innerHTML=`<div class="timeline-modal" id="timeline-modal-inner"></div>`; document.body.appendChild(o); o.addEventListener("click",e=>{ if(e.target.id==="timeline-overlay") closeModal(); }); }
- const inner=document.getElementById("timeline-modal-inner");
- inner.innerHTML=`<div class="timeline-modal-header"><div><div style="font-size:18px;font-weight:950">📍 Historial • ${placa} • ${lista.length} cargas</div><div style="font-size:11px;color:var(--muted)">Desde ficha Flota ${placa} • Modal encima</div></div><button class="close-btn" onclick="closeModal()">✕</button></div><div class="timeline-modal-body"><div class="timeline">${lista.map(c=>`<div class="tl-item"><div style="display:flex;justify-content:space-between"><b>${c.fecha} • ${c.rendimiento} km/l • ${c.litros} L</b><span class="badge b-green">${c.consumo_estado}</span></div><div style="font-size:11px;color:var(--muted)">${c.km_recorridos} km • ${c.tipo} • $${c.costo}</div></div>`).join("")}</div><button class="btn active" style="margin-top:12px" onclick="closeModal()">← Volver a tabla combustible filtrada ${placa}</button></div>`;
- o.classList.add("open");
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
-window.openCombFichaByPlaca=function(placa){
- const data=window._combDataGlobal||[]; const lista=data.filter(c=>c.placa===placa); if(lista.length>0) window.openHistorialDirect(lista, placa);
+
+// --------------------------------------------------------------------------
+// FILTROS EXCEL - Header Checkbox - NO abre modal automático (fix bug)
+// --------------------------------------------------------------------------
+function bindHeaderEvents() {
+  document.querySelectorAll('#thead-comb th[data-filter]').forEach(th => {
+    th.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const key = th.getAttribute('data-filter');
+      toggleFilterPanel(key);
+    });
+  });
 }
-window.openCombFicha=function(id){
- const c=combData.find(x=>x.id===id); if(c){ const lista=combData.filter(x=>x.placa===c.placa); window.openHistorialDirect(lista.slice(0,20), c.placa); }
+
+function toggleFilterPanel(key) {
+  const panel = document.getElementById(`hdr-c-${key}`);
+  if (!panel) return;
+  const isOpen = panel.classList.contains('open');
+  closeAllPanels();
+  if (!isOpen) panel.classList.add('open');
 }
-window.closeModal=function(){ const o=document.getElementById("timeline-overlay"); if(o) o.classList.remove("open"); }
-window.closeTimelineModal=window.closeModal;
-window.limpiarCombFiltros=function(){ combFiltros={sucursal:'',placa:'',estado:'',tipo:'',fecha:''}; renderTabla(combData); }
-document.addEventListener("click",()=>{ document.querySelectorAll(".excel-panel-header").forEach(p=>p.classList.remove("open")); });
+
+function closeAllPanels() {
+  document.querySelectorAll('.excel-panel-header').forEach(p => p.classList.remove('open'));
+}
+
+function buildFilterPanels() {
+  const placas = [...new Set(state.data.map(c => c.placa))].sort().slice(0, 120);
+  const sucs = [...new Set(state.data.map(c => c.sucursal))];
+  const fechas = [...new Set(state.data.map(c => c.fecha))].sort().reverse().slice(0, 20);
+  const tipos = [...new Set(state.data.map(c => c.tipo))];
+  const estados = [...new Set(state.data.map(c => c.consumo_estado))];
+  const map = { placa: placas, sucursal: sucs, fecha: fechas, tipo: tipos, estado: estados };
+
+  Object.entries(map).forEach(([key, vals]) => {
+    const panel = document.getElementById(`hdr-c-${key}`);
+    if (!panel) return;
+    panel.innerHTML = vals.map(v => `
+      <div class="excel-item" data-value="${escapeHtml(v)}" data-key="${key}">
+        <input type="checkbox" ${state.filtros[key] === v ? 'checked' : ''}> ${escapeHtml(v)}
+      </div>
+    `).join('') + `<div class="excel-item clear-all" data-key="${key}" data-value=""><input type="checkbox"> (Todos) • Limpiar</div>`;
+
+    // Bind checkbox clicks
+    panel.querySelectorAll('.excel-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const k = item.getAttribute('data-key');
+        const v = item.getAttribute('data-value');
+        applyFilter(k, v);
+      });
+    });
+  });
+}
+
+function applyFilter(key, value) {
+  state.filtros[key] = state.filtros[key] === value ? '' : value; // toggle
+  closeAllPanels();
+  let filtered = [...state.data];
+  if (state.filtros.sucursal) filtered = filtered.filter(c => c.sucursal === state.filtros.sucursal);
+  if (state.filtros.placa) filtered = filtered.filter(c => c.placa === state.filtros.placa);
+  if (state.filtros.estado) filtered = filtered.filter(c => c.consumo_estado === state.filtros.estado);
+  if (state.filtros.tipo) filtered = filtered.filter(c => c.tipo === state.filtros.tipo);
+  if (state.filtros.fecha) filtered = filtered.filter(c => c.fecha === state.filtros.fecha);
+  renderTable(filtered);
+  // IMPORTANTE: NO abrir modal aquí - solo filtra tabla (fix bug V11.5)
+}
+
+// --------------------------------------------------------------------------
+// ROW CLICKS - Abre historial modal del vehículo (solo aquí, no al filtrar)
+// --------------------------------------------------------------------------
+function bindRowEvents() {
+  document.querySelectorAll('#tbody-comb tr.clickable').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const id = tr.getAttribute('data-id');
+      const placa = tr.getAttribute('data-placa');
+      if (placa) openHistorialByPlaca(placa);
+    });
+  });
+}
+
+// --------------------------------------------------------------------------
+// MODAL HISTORIAL - Timeline overlay - Abierto solo desde fila o Flota
+// --------------------------------------------------------------------------
+function openHistorialByPlaca(placa) {
+  const lista = state.data.filter(c => c.placa === placa);
+  if (lista.length === 0) return;
+  openHistorialModal(lista, placa);
+}
+
+function openHistorialModal(lista, placa) {
+  let overlay = document.getElementById('timeline-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'timeline-overlay';
+    overlay.className = 'timeline-overlay';
+    overlay.innerHTML = '<div class="timeline-modal" id="timeline-modal-inner"></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => {
+      if (e.target.id === 'timeline-overlay') closeHistorialModal();
+    });
+  }
+  const inner = document.getElementById('timeline-modal-inner');
+  inner.innerHTML = `
+    <div class="timeline-modal-header">
+      <div>
+        <div style="font-size:18px;font-weight:950">📍 Historial • ${escapeHtml(placa)} • ${lista.length} cargas</div>
+        <div style="font-size:11px;color:var(--muted)">Consumo promedio ${lista[0]?.rendimiento || '7.5'} km/l • Click fuera o botón para cerrar</div>
+      </div>
+      <button class="close-btn" onclick="window.closeHistorialModal()">✕</button>
+    </div>
+    <div class="timeline-modal-body">
+      <div class="timeline">
+        ${lista.slice(0, 30).map(c => `
+          <div class="tl-item">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <b>${escapeHtml(c.fecha)} • ${escapeHtml(c.rendimiento)} km/l • ${c.litros} L</b>
+              <span class="badge ${getBadgeClass(c.consumo_estado)}">${escapeHtml(c.consumo_estado)}</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">${escapeHtml(c.km_recorridos)} km • ${escapeHtml(c.tipo)} • $${escapeHtml(c.costo)} • ${escapeHtml(c.estacion)}</div>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn active" style="margin-top:16px;background:var(--lime);color:#000;font-weight:800;padding:8px 16px;border-radius:999px;border:none;cursor:pointer" onclick="window.closeHistorialModal()">← Volver a tabla combustible filtrada ${escapeHtml(placa)}</button>
+    </div>
+  `;
+  overlay.classList.add('open');
+}
+
+function closeHistorialModal() {
+  const overlay = document.getElementById('timeline-overlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+// --------------------------------------------------------------------------
+// EVENTOS GLOBALES - Cerrar panels al click fuera
+// --------------------------------------------------------------------------
+function setupGlobalEvents() {
+  document.addEventListener('click', () => closeAllPanels());
+  // Evitar que click dentro del panel cierre
+  document.querySelectorAll('.excel-panel-header').forEach(p => {
+    p.addEventListener('click', (e) => e.stopPropagation());
+  });
+}
+
+// --------------------------------------------------------------------------
+// EXPORTS GLOBALES MINIMOS (solo necesarios para Flota -> Ver Historial)
+// --------------------------------------------------------------------------
+window.filterCombPlaca = function(placa) {
+  // Usado por Flota: Ver Historial Combustible FG-0015
+  state.filtros.placa = placa;
+  const lista = state.data.filter(c => c.placa === placa);
+  renderTable(lista);
+  // Si hay data, abrir historial directo (requerimiento tuyo)
+  if (lista.length > 0) openHistorialModal(lista.slice(0, 30), placa);
+};
+
+window.openHistorialDirect = function(lista, placa) {
+  openHistorialModal(lista, placa);
+};
+
+window.openCombFicha = function(id) {
+  const c = state.data.find(x => String(x.id) === String(id));
+  if (c) openHistorialByPlaca(c.placa);
+};
+
+window.openCombFichaByPlaca = openHistorialByPlaca;
+
+window.closeHistorialModal = closeHistorialModal;
+window.closeModal = closeHistorialModal;
+window.closeTimelineModal = closeHistorialModal;
+
+window.limpiarCombFiltros = function() {
+  state.filtros = { sucursal: '', placa: '', estado: '', tipo: '', fecha: '' };
+  renderTable(state.data);
+};

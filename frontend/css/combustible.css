@@ -1,13 +1,36 @@
-.comb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:14px}
-.comb-kpi{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px}
-.comb-kpi .lbl{font-size:10px;color:var(--muted);font-weight:900;letter-spacing:1px}
-.comb-kpi .val{font-size:22px;font-weight:950;margin-top:6px}
+/* FGWAPP Combustible CSS - V11.6 Final Limpio - Diseño separado */
+.comb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:16px}
+.comb-kpi{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px}
+.comb-kpi .lbl{font-size:10px;color:var(--muted);font-weight:900;letter-spacing:1px;text-transform:uppercase}
+.comb-kpi .val{font-size:22px;font-weight:950;margin-top:8px}
 .comb-kpi .sub{font-size:11px;color:var(--muted);margin-top:6px}
-.timeline{display:flex;flex-direction:column;gap:0;position:relative;margin-left:12px;border-left:2px dashed rgba(198,255,0,.25);padding-left:16px}
-.tl-item{position:relative;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px}
-.tl-item::before{content:"";position:absolute;left:-21px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--lime);border:2px solid var(--bg)}
-.timeline-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+.card-full{width:100%;max-width:100%;margin:0;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0;overflow:hidden}
+.table-full-wrap{width:100%;overflow-x:auto}
+.table-full{width:100%;border-collapse:collapse;table-layout:auto}
+.table-full th{position:relative;padding:12px 18px 12px 10px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;user-select:none;background:var(--card)}
+.table-full th:hover{color:var(--text);background:rgba(198,255,0,.04)}
+.table-full th.active-filter{background:rgba(198,255,0,.12);color:var(--lime)}
+.table-full td{padding:10px;font-size:11px;border-bottom:1px solid rgba(35,38,47,.6);white-space:nowrap}
+.table-full tbody tr.clickable{cursor:pointer;transition:background .15s}
+.table-full tbody tr.clickable:hover{background:rgba(198,255,0,.06)}
+.filter-arrow{font-size:9px;margin-left:6px;opacity:.6}
+.excel-panel-header{position:absolute;top:36px;left:0;background:#1C212E;border:1px solid #2A2E3A;border-radius:12px;padding:10px;min-width:220px;max-width:260px;max-height:340px;overflow-y:auto;overflow-x:hidden;z-index:100;display:none;box-shadow:0 16px 40px rgba(0,0,0,.7)}
+.excel-panel-header.open{display:block}
+.excel-item{display:flex;gap:8px;align-items:center;padding:7px 6px;font-size:11px;cursor:pointer;border-radius:6px}
+.excel-item:hover{background:rgba(198,255,0,.08)}
+.excel-item input{flex-shrink:0}
+.timeline-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
 .timeline-overlay.open{display:flex}
-.timeline-modal{background:#1C212E;border:1px solid var(--border);border-radius:20px;max-width:720px;width:100%;max-height:85vh;overflow-y:auto}
-.timeline-modal-header{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid var(--border)}
-.timeline-modal-body{padding:16px}
+.timeline-modal{background:#1C212E;border:1px solid var(--border);border-radius:20px;max-width:720px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.timeline-modal-header{display:flex;justify-content:space-between;padding:18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#1C212E;z-index:1}
+.timeline-modal-body{padding:18px}
+.timeline{display:flex;flex-direction:column;margin-left:12px;border-left:2px dashed rgba(198,255,0,.25);padding-left:16px}
+.tl-item{position:relative;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px}
+.tl-item::before{content:"";position:absolute;left:-21px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--lime);border:2px solid var(--bg)}
+.badge{font-size:10px;font-weight:800;padding:4px 10px;border-radius:999px;border:1px solid var(--border);display:inline-block}
+.b-lime{background:rgba(198,255,0,.15);color:var(--lime);border-color:rgba(198,255,0,.3)}
+.b-green{background:rgba(0,255,163,.12);color:var(--green)}
+.b-orange{background:rgba(245,158,11,.15);color:var(--orange)}
+.b-yellow{background:rgba(251,191,36,.15);color:var(--yellow)}
+.b-red{background:rgba(239,68,68,.15);color:var(--red)}
+.b-blue{background:rgba(56,189,248,.12);color:var(--blue)}
