@@ -1,81 +1,150 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FGWAPP V8 - Fleet Guard - Dashboard Definitivo</title>
-<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>FGWAPP V8 - Fleet Guard - Dashboard Definitivo 200 LIVE</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="./css/variables.css">
 <link rel="stylesheet" href="./css/layout.css">
 <link rel="stylesheet" href="./css/components.css">
-<style>
-.kpi-clickable:hover{border-color:var(--lime) !important; transform:translateY(-2px); box-shadow:0 8px 32px rgba(198,255,0,.15)}
-.menu-item{user-select:none}
-#btn-volver-dashboard{display:none}
-</style>
+<link rel="stylesheet" href="./css/filtros-ficha.css">
+<link rel="stylesheet" href="./css/combustible.css">
 </head>
 <body>
-<div class="sidebar">
-  <div class="logo">FGWAPP<small>Fleet Guard Web y Aplicación</small><span class="ver" id="ver">Conectando backend...</span></div>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="logo">FGWAPP<small>Fleet Guard Web y Aplicación</small><span class="ver" id="ver">Backend 2 • 200 LIVE • GPS Telcel</span></div>
   <div class="menu">
-    <div class="menu-item active" id="menu-dashboard" style="cursor:pointer"><b>📊 Dashboard</b><i>KPIs • GPS • Live</i></div>
-    <div class="menu-item" id="menu-flota" style="cursor:pointer"><b>🚛 Flota</b><i id="m-flota">200 unidades</i></div>
-    <div class="menu-item"><b>⛽ Combustible</b><i id="m-comb">Control eficiencia</i></div>
-    <div class="menu-item"><b>🗺️ Rutas</b><i>Telcel SIM</i></div>
-    <div class="menu-item"><b>🔧 Mantenimiento</b><i id="m-mant">Vencidos</i></div>
+    <div class="menu-item active" data-view="dashboard" onclick="switchView('dashboard')"><b>📊 Dashboard</b><i>200 LIVE • 114 Ruta • 10.80 km/l</i></div>
+    <div class="menu-item" data-view="flota" onclick="showFlotaOnly()"><b>🚛 Flota</b><i id="m-flota">200 unidades • GDL 120 CLN 80</i></div>
+    <div class="menu-item" data-view="combustible" onclick="switchView('combustible')"><b>⛽ Combustible</b><i id="m-comb">Control eficiencia • 187 cargas</i></div>
+    <div class="menu-item"><b>🗺️ Rutas</b><i>Telcel SIM • Próximamente</i></div>
+    <div class="menu-item"><b>🔧 Mantenimiento</b><i id="m-mant">65 vencidos</i></div>
     <div class="menu-item"><b>👤 Conductores</b><i>20 operadores</i></div>
-    <div class="menu-item"><b>📍 GPS</b><i>Live tracking</i></div>
-    <div class="menu-item"><b>📄 Reportes</b><i>PDF • Excel</i></div>
-    <div class="menu-item"><b>🤖 Asistente IA</b><i>Diagnóstico</i></div>
+    <div class="menu-item"><b>📍 GPS</b><i>Live tracking • 200 unidades</i></div>
+    <div class="menu-item"><b>📄 Reportes</b><i>PDF • Excel • Control eficiencia</i></div>
+    <div class="menu-item"><b>🤖 Asistente IA</b><i>Diagnóstico amigable</i></div>
   </div>
   <div style="margin-top:auto;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:14px">
-    <div style="font-size:10px;color:var(--muted);letter-spacing:1px;font-weight:800">SISTEMA V8 PROFESIONAL</div>
-    <div style="font-weight:900;color:var(--green);margin-top:6px">FGWAPP Python</div>
-    <div style="font-size:11px;color:var(--muted);margin-top:6px" id="sys-info">GDL 120 • CLN 80 • Miles capacidad</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:10px">Click en Flota → solo tabla</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:4px">Arquitectura: <b style="color:var(--text)">css/ + js/ + assets/</b> • Modular</div>
-    <div style="font-size:10px;color:var(--muted);margin-top:4px">Lenguaje: <b style="color:var(--text)">Oportunidad de mejora</b></div>
+    <div style="font-size:10px;color:var(--muted);font-weight:800;letter-spacing:1px">FGWAPP V8 • PYTHON BACKEND</div>
+    <div style="font-weight:900;color:var(--green);margin-top:6px">Escalable a miles • Supabase São Paulo</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px" id="sys-info">2 sucursales • GDL 120 • CLN 80 • Control eficiencia</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:8px">Lenguaje: <b style="color:var(--text)">No fraude</b> • Amigable • Oportunidad Mejora</div>
   </div>
 </div>
 
 <div class="main">
   <div class="top">
-    <div class="h1">DASHBOARD DEFINITIVO • 200 UNIDADES LIVE • PROFESIONAL</div>
-    <div style="display:flex;gap:6px;margin-left:auto;flex-wrap:wrap;align-items:center">
-      <button class="btn active" data-f="En Ruta">En Ruta</button>
-      <button class="btn" data-f="En Base">En Base</button>
-      <button class="btn" data-f="En Taller">En Taller</button>
-      <button class="btn" data-f="Disponible">Disponible</button>
-      <button class="btn" data-f="">Todos</button>
-      <button class="btn" id="btn-volver-dashboard" onclick="showDashboardView()" style="background:var(--card);border-color:var(--lime);color:var(--lime)">← Volver Dashboard</button>
-      <span id="live-count" style="font-size:11px;color:var(--muted);padding:8px">200/200 • 10.80 km/l</span>
+    <button class="hamburger" id="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="h1" id="main-title">DASHBOARD DEFINITIVO • 200 UNIDADES LIVE • 114 EN RUTA • 57 EN BASE • 14 TALLER • 15 DISPONIBLE • GDL 120 + CLN 80</div>
+    <button class="btn active" id="btn-flota" onclick="showFlotaOnly()">🚛 Flota 200</button>
+  </div>
+
+  <!-- VIEW DASHBOARD -->
+  <div class="view active" id="view-dashboard">
+    <div class="kpis" id="kpis"></div>
+    <div class="charts">
+      <div class="card"><h4>DISTRIBUCIÓN FLOTA <span id="chart-dist-info" style="color:var(--lime)">Donut • Click interactivo</span></h4><canvas id="cDist" height="160"></canvas></div>
+      <div class="card"><h4>GPS TELCEL SIM LIVE <span style="color:var(--green)">200 unidades • Mapa</span></h4><div id="gps-map" style="height:240px;background:var(--bg);border:1px solid var(--border);border-radius:12px;position:relative;overflow:hidden"></div><div style="margin-top:8px;font-size:10px;color:var(--muted)">Telcel SIM • Tracking en tiempo real • GDL 120 • CLN 80 • Click punto → ficha completa</div></div>
+    </div>
+    <div class="filters-bar" id="filters-bar">
+      <div class="filter-group"><span class="lbl">SUCURSAL:</span>
+        <button class="filter-chip" data-filter="sucursal" data-value="1">GDL 120</button>
+        <button class="filter-chip" data-filter="sucursal" data-value="2">CLN 80</button>
+      </div>
+      <div class="filter-group"><span class="lbl">ESTADO:</span>
+        <button class="filter-chip" data-filter="estado" data-value="En Ruta">En Ruta 114</button>
+        <button class="filter-chip" data-filter="estado" data-value="En Base">En Base 57</button>
+        <button class="filter-chip" data-filter="estado" data-value="En Taller">Taller 14</button>
+        <button class="filter-chip" data-filter="estado" data-value="Disponible">Disponible 15</button>
+      </div>
+      <div class="filter-group"><span class="lbl">CONSUMO:</span>
+        <button class="filter-chip" data-filter="consumo" data-value="Bajo">Eficiente 28</button>
+        <button class="filter-chip" data-filter="consumo" data-value="Normal">Óptimo 142</button>
+        <button class="filter-chip" data-filter="consumo" data-value="Excedido">Por Revisar 19</button>
+        <button class="filter-chip" data-filter="consumo" data-value="Sospechoso">Atención 11</button>
+        <button class="filter-chip" data-filter="consumo" data-value="Critico">Oportunidad Mejora 11</button>
+      </div>
+      <button class="btn" id="btn-limpiar" style="margin-left:auto">🧹 Limpiar</button>
+      <span id="filtros-activos" style="font-size:11px;color:var(--muted)">Cargando filtros combinables...</span>
+    </div>
+    <div class="card" id="tabla-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <h4>FLOTA LIVE • 200 UNIDADES • CLICK FILA → FICHA COMPLETA <span id="tabla-info" style="color:var(--muted)">Cargando...</span></h4>
+        <button class="btn" onclick="switchView('dashboard')">← Volver Dashboard</button>
+      </div>
+      <table><thead><tr><th>PLACA</th><th>MARCA</th><th>MODELO</th><th>AÑO</th><th>SUCURSAL</th><th>ESTADO</th><th>CONSUMO</th><th>KM</th><th>KM/L</th><th>MANT</th></tr></thead><tbody id="tbody"></tbody></table>
     </div>
   </div>
 
-  <div class="kpis" id="kpis"></div>
-
-  <div class="charts">
-    <div class="card"><h4>RENDIMIENTO GASOLINA <span style="color:var(--lime)">Barras por unidad • 15</span></h4><canvas id="cGas" height="140"></canvas></div>
-    <div class="card"><h4>RENDIMIENTO FLOTA <span style="color:var(--green)">km recorridos</span></h4><canvas id="cFlota" height="140"></canvas></div>
-    <div class="card"><h4>FLUJO DE CAJA <span style="color:var(--yellow)">ingresos vs egresos</span></h4><canvas id="cCaja" height="140"></canvas></div>
-  </div>
-
-  <div class="gps">
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="padding:16px;display:flex;justify-content:space-between"><h4>GPS • MAPA SIMULADO • TELCEL SIM • GDL + CLN</h4><div style="display:flex;gap:6px"><button class="btn active">Ver Todos</button><button class="btn">Satélite</button></div></div>
-      <div class="map"><div class="grid"></div><div id="dots" style="position:absolute;inset:0"></div></div>
-      <div style="padding:10px 16px;font-size:10px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap"><span>🟢 En Ruta 114</span><span>🔵 En Base 57</span><span>🟠 En Taller 14</span><span>🟡 Atención 11</span><span>🔴 Oportunidad 11</span></div>
+  <!-- VIEW COMBUSTIBLE - MISMO INDEX SPA -->
+  <div class="view" id="view-combustible">
+    <div class="kpis" id="kpis-comb"></div>
+    <div class="charts">
+      <div class="card"><h4>RENDIMIENTO POR UNIDAD <span style="color:var(--lime)">Barras • 20 unidades</span></h4><canvas id="cComb" height="160"></canvas><div style="margin-top:8px;font-size:10px;color:var(--muted)">Eficiente / Óptimo / Por Revisar / Atención / Oportunidad Mejora</div></div>
+      <div class="card"><h4>HISTÓRICO VEHÍCULO <span style="color:var(--green)">Línea tiempo • Vista 1 vehículo</span></h4><canvas id="cHist" height="160"></canvas><div style="margin-top:8px;font-size:10px;color:var(--muted)" id="hist-info">Selecciona un vehículo abajo para ver su línea de tiempo</div></div>
     </div>
-    <div class="card">
-      <h4>UNIDAD SELECCIONADA • DETALLE</h4>
-      <div id="unit-detail" style="margin-top:12px"><div style="font-size:22px;font-weight:900">FG-0013</div><div style="font-size:11px;color:var(--muted)">Volvo VNL 760 • Placa lime #C6FF00 • GDL</div><div style="margin-top:12px;font-size:11px;color:var(--muted)">Selecciona una unidad en el mapa</div></div>
-      <div style="margin-top:18px"><h4>NOTIFICACIONES • LENGUAJE AMIGABLE</h4><div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;font-size:11px"><div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:10px"><b style="color:var(--yellow)">Atención:</b> 11 unidades oportunidad optimización • Revisar hábitos</div><div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);border-radius:10px;padding:10px"><b style="color:var(--red)">Oportunidad mejora:</b> 11 unidades consumo atípico • Revisión prioritaria</div></div></div>
+    <div class="filters-bar">
+      <div class="filter-group"><span class="lbl">SUCURSAL:</span>
+        <button class="filter-chip" data-filter="sucursal-comb" data-value="1">GDL 120</button>
+        <button class="filter-chip" data-filter="sucursal-comb" data-value="2">CLN 80</button>
+      </div>
+      <div class="filter-group"><span class="lbl">EFICIENCIA:</span>
+        <button class="filter-chip" data-filter="consumo-comb" data-value="Bajo">Eficiente</button>
+        <button class="filter-chip" data-filter="consumo-comb" data-value="Normal">Óptimo</button>
+        <button class="filter-chip" data-filter="consumo-comb" data-value="Excedido">Por Revisar</button>
+        <button class="filter-chip" data-filter="consumo-comb" data-value="Sospechoso">Atención</button>
+        <button class="filter-chip" data-filter="consumo-comb" data-value="Critico">Oportunidad Mejora</button>
+      </div>
+      <div class="filter-group"><span class="lbl">FECHA:</span>
+        <button class="filter-chip" data-filter="fecha-comb" data-value="hoy">Hoy</button>
+        <button class="filter-chip" data-filter="fecha-comb" data-value="7d">7 días</button>
+        <button class="filter-chip" data-filter="fecha-comb" data-value="30d">30 días</button>
+      </div>
+      <select id="vehiculo-select" class="filter-select"><option value="">Todos los vehículos (200)</option></select>
+      <button class="btn" id="btn-limpiar-comb" style="margin-left:auto">🧹 Limpiar</button>
+      <span id="filtros-activos-comb" style="font-size:11px;color:var(--muted)"></span>
+    </div>
+    <div class="card" id="tabla-card-comb">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <h4>COMBUSTIBLE CARGAS • CONTROL EFICIENCIA <span id="tabla-info-comb" style="color:var(--muted)">Cargando...</span></h4>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input id="search-input-comb" placeholder="🔍 Buscar placa..." />
+          <div class="dropdown" id="dropdown-estado">
+            <button class="btn" onclick="toggleDropdown('dropdown-estado')">⚙️ Filtro Excel ▾</button>
+            <div class="dropdown-content">
+              <div style="padding:8px;border-bottom:1px solid var(--border)"><input id="dropdown-search" placeholder="Buscar..." style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px;color:var(--text)"><label style="display:flex;gap:6px;margin-top:8px;font-size:11px"><input type="checkbox" id="check-all" checked> Seleccionar todo</label></div>
+              <div id="dropdown-list" style="max-height:200px;overflow-y:auto;padding:6px"></div>
+              <div style="padding:8px;border-top:1px solid var(--border);display:flex;gap:6px"><button class="btn active" style="flex:1" onclick="aplicarDropdown()">Aplicar</button><button class="btn" style="flex:1" onclick="toggleDropdown('dropdown-estado')">Cerrar</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="overflow-x:auto"><table><thead><tr><th>FECHA</th><th>PLACA</th><th>MARCA</th><th>LITROS</th><th>KM</th><th>KM/L</th><th>EFICIENCIA</th><th>ACCIÓN AMIGABLE</th><th>COSTO</th></tr></thead><tbody id="tbody-comb"></tbody></table></div>
     </div>
   </div>
-
-  <div class="card" id="tabla-card"><h4>FLOTA LIVE • TABLA • 200 UNIDADES <span id="tabla-info" style="color:var(--muted)">Cargando...</span></h4><table><thead><tr><th>PLACA</th><th>MARCA</th><th>SUCURSAL</th><th>ESTADO</th><th>CONSUMO</th><th>EFICIENCIA</th><th>KM</th></tr></thead><tbody id="tbody"></tbody></table></div>
 </div>
 
+<!-- Modal ficha unidad/carga -->
+<div class="modal-overlay" id="modal-overlay"><div class="modal" id="modal-content"></div></div>
+
 <script type="module" src="./js/dashboard.js"></script>
+<script type="module" src="./js/combustible.js"></script>
+<script>
+// Sidebar responsive
+window.toggleSidebar = function(){ document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
+window.closeSidebar = function(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+window.switchView = function(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.menu-item').forEach(m=>m.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  const mi = document.querySelector(`[data-view='${view}']`);
+  if(mi) mi.classList.add('active');
+  document.getElementById('main-title').textContent = view==='combustible' ? 'COMBUSTIBLE • CONTROL EFICIENCIA • 187 CARGAS • FILTROS EXCEL • VISTA 1 VEHÍCULO' : 'DASHBOARD DEFINITIVO • 200 UNIDADES LIVE • 114 EN RUTA • 57 EN BASE • 14 TALLER • 15 DISPONIBLE • GDL 120 + CLN 80';
+  if(window.innerWidth<=768) closeSidebar();
+  window.scrollTo(0,0);
+}
+window.toggleDropdown = function(id){ document.getElementById(id).classList.toggle('open'); }
+</script>
 </body>
 </html>

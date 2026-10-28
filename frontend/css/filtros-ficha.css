@@ -1,0 +1,25 @@
+
+/* Filtros combinables */
+.filters-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+.filter-group{display:flex;gap:6px;align-items:center}
+.filter-group .lbl{font-size:10px;color:var(--muted);font-weight:800;letter-spacing:1px;margin-right:4px}
+.filter-chip{padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition:.15s}
+.filter-chip:hover{background:var(--card2);color:var(--text)}
+.filter-chip.active{background:var(--lime);color:#000;border-color:var(--lime);box-shadow:0 0 12px rgba(198,255,0,.25)}
+.filter-chip.active-blue{background:var(--blue);color:#fff;border-color:var(--blue)}
+.filter-chip.active-green{background:var(--green);color:#000;border-color:var(--green)}
+
+/* Modal Ficha */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card2);border:1px solid var(--border);border-radius:18px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.modal-header{padding:20px 20px 0 20px;display:flex;justify-content:space-between;align-items:start}
+.modal-body{padding:20px}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+.modal-field{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px}
+.modal-field .k{font-size:10px;color:var(--muted);font-weight:800;letter-spacing:1px}
+.modal-field .v{font-size:14px;font-weight:800;margin-top:4px}
+.close-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;display:grid;place-items:center;font-size:14px}
+.close-btn:hover{background:var(--card2);color:var(--text)}
+tr.clickable{cursor:pointer;transition:.1s}
+tr.clickable:hover td{background:rgba(198,255,0,.06) !important}

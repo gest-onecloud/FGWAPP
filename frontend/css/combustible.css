@@ -1,0 +1,12 @@
+/* Capa 2 Combustible - dentro de index.html SPA */
+.filter-select{background:var(--card2);border:1px solid var(--border);border-radius:999px;padding:7px 14px;color:var(--text);font-size:12px;font-weight:600;min-width:180px}
+.dropdown{position:relative}
+.dropdown-content{display:none;position:absolute;right:0;top:36px;background:var(--card2);border:1px solid var(--border);border-radius:14px;min-width:240px;box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:25}
+.dropdown.open .dropdown-content{display:block}
+.dropdown-item{display:flex;gap:8px;align-items:center;padding:6px 10px;font-size:12px;cursor:pointer;border-radius:8px}
+.dropdown-item:hover{background:var(--card)}
+#search-input-comb{background:var(--bg);border:1px solid var(--border);border-radius:999px;padding:7px 14px;color:var(--text);font-size:12px;width:200px}
+@media(max-width:768px){
+  #search-input-comb{width:100%}
+  .filter-select{width:100%}
+}
