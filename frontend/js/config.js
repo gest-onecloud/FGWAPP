@@ -1,5 +1,5 @@
 export const CONFIG = {
   API_BASE: "https://fgwapp.onrender.com",
-  VERSION: "V11.4 - Headers Excel Full Width",
-  TOTAL_FLOTA: 200
+  SUPABASE_URL: "https://example.supabase.co",
+  VERSION: "V11.6 FINAL HISTORIAL FIX"
 };

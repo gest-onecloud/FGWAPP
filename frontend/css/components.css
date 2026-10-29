@@ -1,33 +1,22 @@
-/* Fix V11.5 - checklist completo + ficha completa + tabla sin undefined */
-.card-full{width:100%;max-width:100%;margin:0}
-.table-full-wrap{width:100%;overflow-x:auto}
-table th{position:relative;padding-right:20px;cursor:pointer;user-select:none}
-th .filter-arrow{font-size:9px;margin-left:6px;opacity:.7}
-/* Panel Excel - AHORA más grande y sin corte */
-.excel-panel-header{
- position:absolute;top:34px;left:0;
- background:#1C212E;border:1px solid #2A2E3A;
- border-radius:12px;padding:10px;
- min-width:220px;max-width:260px;
- max-height:340px;overflow-y:auto;overflow-x:hidden;
- z-index:100;display:none;
- box-shadow:0 16px 40px rgba(0,0,0,.7);
-}
-.excel-panel-header.open{display:block}
-.excel-item{display:flex;gap:8px;align-items:center;padding:7px 6px;font-size:11px;cursor:pointer;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.excel-item:hover{background:rgba(198,255,0,.1)}
-.excel-item input{flex-shrink:0}
-.table-full{width:100%;table-layout:auto}
-.table-full th{white-space:nowrap;font-size:10px;font-weight:800;letter-spacing:.6px}
-.table-full td{font-size:11px}
-/* Ficha modal completa como antes */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
 .modal-overlay.open{display:flex}
-.modal{background:#1C212E;border:1px solid #2A2E3A;border-radius:20px;max-width:760px;width:100%;max-height:90vh;overflow-y:auto}
-.modal-header{display:flex;justify-content:space-between;align-items:flex-start;padding:20px;border-bottom:1px solid #2A2E3A}
-.modal-body{padding:20px}
-.modal-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.modal-field{background:#141820;border:1px solid #23262F;border-radius:12px;padding:12px}
-.modal-field .k{font-size:10px;color:var(--muted);font-weight:800;letter-spacing:.8px}
+.modal{background:#1C212E;border:1px solid var(--border);border-radius:20px;max-width:720px;width:100%;max-height:85vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;padding:18px;border-bottom:1px solid var(--border)}
+.modal-body{padding:18px}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-field{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
+.modal-field .k{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase}
 .modal-field .v{font-size:13px;font-weight:800;margin-top:6px}
-.close-btn{width:32px;height:32px;border-radius:999px;border:1px solid #2A2E3A;background:#1C212E;color:var(--text);cursor:pointer}
+@media(max-width:600px){.modal-grid{grid-template-columns:1fr}}
+.excel-panel-header{position:absolute;top:36px;left:0;background:#1C212E;border:1px solid #2A2E3A;border-radius:12px;padding:10px;min-width:220px;max-width:260px;max-height:340px;overflow-y:auto;z-index:100;display:none;box-shadow:0 16px 40px rgba(0,0,0,.7)}
+.excel-panel-header.open{display:block}
+.excel-item{display:flex;gap:8px;align-items:center;padding:7px 6px;font-size:11px;cursor:pointer;border-radius:6px}
+.excel-item:hover{background:rgba(198,255,0,.08)}
+.table-full-wrap{width:100%;overflow-x:auto}
+.table-full{width:100%;border-collapse:collapse}
+.table-full th{position:relative;padding:12px 18px 12px 10px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;background:var(--card);user-select:none}
+.table-full th:hover{background:rgba(198,255,0,.04);color:var(--text)}
+.table-full td{padding:10px;font-size:11px;border-bottom:1px solid rgba(35,38,47,.6);white-space:nowrap}
+.table-full tbody tr.clickable{cursor:pointer}
+.table-full tbody tr.clickable:hover{background:rgba(198,255,0,.06)}
+.filter-arrow{font-size:9px;margin-left:6px;opacity:.6}
