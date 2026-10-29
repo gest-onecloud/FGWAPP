@@ -2,8 +2,6 @@
 .comb-kpi{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px}
 .comb-kpi .lbl{font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase}
 .comb-kpi .val{font-size:22px;font-weight:950;margin-top:8px}
-.comb-kpi .sub{font-size:11px;color:var(--muted);margin-top:6px}
-.card-full{width:100%;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0;overflow:hidden}
 .timeline-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px}
 .timeline-overlay.open{display:flex !important}
 .timeline-modal{background:#1C212E;border:1px solid var(--border);border-radius:20px;max-width:720px;width:100%;max-height:85vh;overflow-y:auto}

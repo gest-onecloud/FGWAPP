@@ -1,54 +1,88 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FGWAPP V11.8 - Filtros Flota + Combustible</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FGWAPP V12.3 - Hybrid LIVE + Mock</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="./css/variables.css">
 <link rel="stylesheet" href="./css/layout.css">
 <link rel="stylesheet" href="./css/components.css">
 <link rel="stylesheet" href="./css/combustible.css">
+<link rel="stylesheet" href="data:text/css;base64,LyogUlVUQVMgQ1NTIFYxMiAtIE1hcGEgb3NjdXJvIEZHV0FQUCAtIEdlbmVyYWRvIGRlIG51ZXZvICovCi5ydXRhcy1ncmlkewogIGRpc3BsYXk6Z3JpZDsKICBncmlkLXRlbXBsYXRlLWNvbHVtbnM6MWZyIDM0MHB4OwogIGdhcDoxMnB4OwogIGhlaWdodDpjYWxjKDEwMHZoIC0gMTQwcHgpOwogIG1pbi1oZWlnaHQ6NTAwcHg7Cn0KLnJ1dGFzLW1hcHsKICB3aWR0aDoxMDAlOwogIGhlaWdodDoxMDAlOwogIG1pbi1oZWlnaHQ6NTAwcHg7CiAgYm9yZGVyLXJhZGl1czoxNnB4OwogIG92ZXJmbG93OmhpZGRlbjsKICBib3JkZXI6MXB4IHNvbGlkIHZhcigtLWJvcmRlcik7CiAgYmFja2dyb3VuZDojMEIwRTE0OwogIHBvc2l0aW9uOnJlbGF0aXZlOwogIHotaW5kZXg6MTsKfQoucnV0YXMtcGFuZWx7CiAgYmFja2dyb3VuZDp2YXIoLS1jYXJkKTsKICBib3JkZXI6MXB4IHNvbGlkIHZhcigtLWJvcmRlcik7CiAgYm9yZGVyLXJhZGl1czoxNnB4OwogIHBhZGRpbmc6MTZweDsKICBvdmVyZmxvdy15OmF1dG87CiAgZGlzcGxheTpmbGV4OwogIGZsZXgtZGlyZWN0aW9uOmNvbHVtbjsKICBnYXA6MTJweDsKfQoucnV0YXMta3BpewogIGRpc3BsYXk6Z3JpZDsKICBncmlkLXRlbXBsYXRlLWNvbHVtbnM6MWZyIDFmcjsKICBnYXA6OHB4Owp9Ci5ydXRhcy1rcGktaXRlbXsKICBiYWNrZ3JvdW5kOnZhcigtLWNhcmQyKTsKICBib3JkZXI6MXB4IHNvbGlkIHZhcigtLWJvcmRlcik7CiAgYm9yZGVyLXJhZGl1czoxMnB4OwogIHBhZGRpbmc6MTBweDsKfQoucnV0YXMta3BpLWl0ZW0gLmt7CiAgZm9udC1zaXplOjlweDsKICBjb2xvcjp2YXIoLS1tdXRlZCk7CiAgZm9udC13ZWlnaHQ6ODAwOwogIHRleHQtdHJhbnNmb3JtOnVwcGVyY2FzZTsKICBsZXR0ZXItc3BhY2luZzoxcHg7Cn0KLnJ1dGFzLWtwaS1pdGVtIC52ewogIGZvbnQtc2l6ZToxOHB4OwogIGZvbnQtd2VpZ2h0Ojk1MDsKICBtYXJnaW4tdG9wOjRweDsKfQoucnV0YXMtbGlzdHsKICBmbGV4OjE7CiAgb3ZlcmZsb3cteTphdXRvOwogIGRpc3BsYXk6ZmxleDsKICBmbGV4LWRpcmVjdGlvbjpjb2x1bW47CiAgZ2FwOjZweDsKICBtYXgtaGVpZ2h0OjYwdmg7Cn0KLnJ1dGFzLWl0ZW17CiAgcGFkZGluZzo4cHggMTBweDsKICBiYWNrZ3JvdW5kOnZhcigtLWNhcmQyKTsKICBib3JkZXI6MXB4IHNvbGlkIHZhcigtLWJvcmRlcik7CiAgYm9yZGVyLXJhZGl1czoxMHB4OwogIGRpc3BsYXk6ZmxleDsKICBqdXN0aWZ5LWNvbnRlbnQ6c3BhY2UtYmV0d2VlbjsKICBhbGlnbi1pdGVtczpjZW50ZXI7CiAgY3Vyc29yOnBvaW50ZXI7CiAgZm9udC1zaXplOjExcHg7CiAgdHJhbnNpdGlvbjphbGwgLjE1czsKfQoucnV0YXMtaXRlbTpob3ZlcnsKICBib3JkZXItY29sb3I6dmFyKC0tbGltZSk7CiAgYmFja2dyb3VuZDpyZ2JhKDE5OCwyNTUsMCwuMDYpOwp9Ci5ydXRhcy1pdGVtLmFjdGl2ZXsKICBib3JkZXItY29sb3I6dmFyKC0tbGltZSk7CiAgYmFja2dyb3VuZDpyZ2JhKDE5OCwyNTUsMCwuMTIpOwp9CkBtZWRpYShtYXgtd2lkdGg6OTAwcHgpewogIC5ydXRhcy1ncmlkewogICAgZ3JpZC10ZW1wbGF0ZS1jb2x1bW5zOjFmcjsKICAgIGhlaWdodDphdXRvOwogIH0KICAucnV0YXMtbWFwewogICAgaGVpZ2h0OjQyMHB4OwogICAgbWluLWhlaWdodDo0MjBweDsKICB9CiAgLnJ1dGFzLWxpc3R7CiAgICBtYXgtaGVpZ2h0OjMwMHB4OwogIH0KfQoubGVhZmxldC1jb250YWluZXJ7CiAgYmFja2dyb3VuZDojMEIwRTE0ICFpbXBvcnRhbnQ7Cn0KLmN1c3RvbS1waW57CiAgd2lkdGg6MTJweDsKICBoZWlnaHQ6MTJweDsKICBib3JkZXItcmFkaXVzOjUwJTsKICBib3JkZXI6MnB4IHNvbGlkICMwMDA7CiAgZGlzcGxheTppbmxpbmUtYmxvY2s7Cn0KLnBpbi1nZGx7CiAgYmFja2dyb3VuZDp2YXIoLS1saW1lKTsKICBib3gtc2hhZG93OjAgMCA4cHggcmdiYSgxOTgsMjU1LDAsLjgpOwp9Ci5waW4tY2xuewogIGJhY2tncm91bmQ6IzM4QkRGODsKICBib3gtc2hhZG93OjAgMCA4cHggcmdiYSg1NiwxODksMjQ4LC44KTsKfQoubGVhZmxldC1wb3B1cC1jb250ZW50LXdyYXBwZXJ7CiAgYmFja2dyb3VuZDojMUMyMTJFICFpbXBvcnRhbnQ7CiAgY29sb3I6I0UyRThGMCAhaW1wb3J0YW50OwogIGJvcmRlcjoxcHggc29saWQgIzJBMkUzQTsKICBib3JkZXItcmFkaXVzOjEycHggIWltcG9ydGFudDsKfQoubGVhZmxldC1wb3B1cC10aXB7CiAgYmFja2dyb3VuZDojMUMyMTJFICFpbXBvcnRhbnQ7Cn0K">
 </head>
 <body>
 <div class="sidebar">
-  <div class="logo">FGWAPP<small>Fleet Guard Web</small><span class="ver" id="ver">V11.8 FILTROS FLOTA</span></div>
+  <div class="logo">FGWAPP<small>Fleet Guard Web</small><span class="ver">V12.3 HYBRID</span></div>
   <div class="menu">
     <div class="menu-item" data-view="dashboard" onclick="switchView('dashboard')"><b>📊 Dashboard</b><i>200 LIVE</i></div>
-    <div class="menu-item active" data-view="flota" onclick="switchView('flota')"><b>🚛 Flota</b><i id="m-flota">Filtros Excel Flota</i></div>
-    <div class="menu-item" data-view="combustible" onclick="switchView('combustible')"><b>⛽ Combustible</b><i id="m-comb">Filtros Excel OK</i></div>
+    <div class="menu-item active" data-view="flota" onclick="switchView('flota')"><b>🚛 Flota</b><i id="m-flota">200 LIVE/MOCK</i></div>
+    <div class="menu-item" data-view="combustible" onclick="switchView('combustible')"><b>⛽ Combustible</b><i>Filtros Excel</i></div>
+    <div class="menu-item" data-view="rutas" onclick="switchView('rutas')"><b>🗺️ Rutas</b><i>GPS 200 LIVE</i></div>
   </div>
 </div>
 <div class="main">
   <div class="top">
-    <div class="h1">V11.8 - FILTROS FLOTA - Click header PLACA▼ MARCA▼ MODELO▼ AÑO▼ SUCURSAL▼ ESTADO▼ CONSUMO▼ -> checkbox -> tabla filtra</div>
+    <div class="h1">V12.3 HYBRID - Timeout 3.5s - Si Render dormido muestra MOCK temporal 200 y luego LIVE Supabase - Escalable a miles</div>
     <button class="btn active" onclick="switchView('flota')">🚛 Flota 200</button>
     <button class="btn" onclick="switchView('combustible')">⛽ Combustible</button>
+    <button class="btn" onclick="switchView('rutas')">🗺️ Rutas</button>
   </div>
-  <div id="view-dashboard" style="display:none"><div class="kpi" style="max-width:320px"><div class="lbl">DASHBOARD</div><div class="val">200 LIVE</div></div></div>
+
+  <div id="view-dashboard" style="display:none">
+    <div class="kpi" style="max-width:480px"><div class="lbl">DASHBOARD</div><div class="val">200 unidades</div><div class="sub">V12.3 Hybrid: intenta Supabase con timeout 3.5s. Si Render dormido, muestra MOCK temporal y reintenta en background a los 15s para pasar a LIVE. Escalable a 10k+ via Supabase.</div></div>
+  </div>
+
   <div id="view-flota">
-    <div style="display:flex;gap:8px;margin-bottom:10px"><span id="filtros-activos" style="font-size:11px;color:var(--muted)">Filtros Flota V11.8</span><button class="btn" onclick="limpiarFlotaFiltros()">🧹 Limpiar filtros Flota</button></div>
-    <div class="card" style="padding:0;overflow:hidden"><div class="table-full-wrap"><table class="table-full"><thead id="thead-flota"></thead><tbody id="tbody"></tbody></table></div></div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <span id="filtros-activos" style="font-size:11px;color:var(--muted)">Conectando...</span>
+      <button class="btn" onclick="location.reload()">↻ Recargar LIVE</button>
+      <button class="btn" onclick="limpiarFlotaFiltros()">🧹 Limpiar</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="table-full-wrap" style="max-height:75vh;overflow:auto">
+        <table class="table-full">
+          <thead id="thead-flota"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
+
   <div id="view-combustible" style="display:none">
-    <div class="comb-grid" id="comb-stats"></div>
-    <div style="display:flex;gap:8px;margin-bottom:10px"><span id="comb-info" style="font-size:11px;color:var(--muted)">Filtros Combustible</span><button class="btn" onclick="limpiarFiltrosComb()">🧹 Limpiar</button></div>
-    <div class="card" style="padding:0;overflow:hidden"><div class="table-full-wrap"><table class="table-full"><thead id="thead-comb"></thead><tbody id="tbody-comb"></tbody></table></div></div>
+    <div class="card" style="padding:16px">Combustible V12.3 - Carga con mismo timeout 3.5s - 1600 recargas - Click fila = historial (próximo paso filtros Excel)</div>
+    <div class="card" style="padding:0;overflow:hidden;margin-top:10px"><div class="table-full-wrap"><table class="table-full"><thead><tr><th>FECHA</th><th>PLACA</th><th>LITROS</th><th>KM/L</th></tr></thead><tbody id="tbody-comb"></tbody></table></div></div>
+  </div>
+
+  <div id="view-rutas" style="display:none">
+    <div style="display:grid;grid-template-columns:1.6fr .9fr;gap:12px">
+      <div class="rutas-map" id="mapa-rutas" style="height:500px;background:#0f172a;border-radius:16px"></div>
+      <div class="rutas-panel">
+        <div id="rutas-kpis"></div>
+        <div id="rutas-lista" style="max-height:420px;overflow:auto;display:grid;gap:6px;margin-top:8px"></div>
+      </div>
+    </div>
   </div>
 </div>
+
 <div class="modal-overlay" id="modal-overlay"><div class="modal" id="modal-content"></div></div>
-<div class="timeline-overlay" id="timeline-overlay"><div class="timeline-modal" id="timeline-modal-inner"></div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
 import './js/dashboard.js';
-import { initCombustible } from './js/combustible.js';
+import { initRutas } from './js/rutas.js';
+
 window.switchView=function(view){
   document.getElementById("view-dashboard").style.display=view==="dashboard"?"block":"none";
   document.getElementById("view-flota").style.display=view==="flota"?"block":"none";
   document.getElementById("view-combustible").style.display=view==="combustible"?"block":"none";
+  document.getElementById("view-rutas").style.display=view==="rutas"?"block":"none";
   document.querySelectorAll(".menu-item").forEach(m=>m.classList.remove("active"));
   document.querySelector(`[data-view='${view}']`)?.classList.add("active");
-  if(view==="combustible"){ initCombustible(); }
+  if(view==="rutas") setTimeout(()=>initRutas(),200);
 };
+
 document.getElementById("modal-overlay")?.addEventListener("click",(e)=>{ if(e.target.id==="modal-overlay") window.closeFlotaFicha(); });
-document.getElementById("timeline-overlay")?.addEventListener("click",(e)=>{ if(e.target.id==="timeline-overlay") window.cerrarHistorial(); });
 </script>
 </body>
 </html>

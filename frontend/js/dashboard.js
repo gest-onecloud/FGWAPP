@@ -1,127 +1,100 @@
-// DASHBOARD V11.8 - FLOTA FILTROS EXCEL + HISTORIAL
-import { fetchStats, fetchFlota } from './api.js';
-let flotaData=[]; let filteredFlota=[];
-let ACTIVE_FLOTA = { placa:'', marca:'', modelo:'', anio:'', sucursal:'', estado:'', consumo:'' };
+// DASHBOARD V12.3 HYBRID - Render no bloquea - Ficha 9 campos completa - Escalable Supabase
+import { fetchFlota, wakeBackend } from './api.js';
 
-async function init(){
-  const stats=await fetchStats(); flotaData=await fetchFlota();
-  document.getElementById("ver").textContent=`V11.8 FILTROS FLOTA`;
-  document.getElementById("m-flota").textContent=`${stats.total} GDL ${stats.gdl} CLN ${stats.culiacan} Filtros Excel`;
-  filteredFlota=[...flotaData];
-  renderTabla(filteredFlota);
-  setupClose();
-}
+let FLOTA_CACHE = [];
+let IS_LIVE = false;
 
-function norm(f){ return {id:f.id, placa:f.placa||`FG-${String(f.id).padStart(4,'0')}`, marca:f.marca||'Scania', modelo:f.modelo||'R-450', anio:String(f.anio||2022), sucursal:f.sucursales?.clave||'SUC-GDL-01', estado:f.estado||'En Ruta', consumo:f.consumo_estado||'Normal', km:f.kilometraje||'24,532', kml:f.rendimiento||'7.58'}; }
-
-function renderTabla(listaRaw){
-  const lista=listaRaw.map(norm);
-  const thead=document.getElementById("thead-flota");
+export async function initFlota(){
+  console.log("[Flota V12.3] Init sin bloqueo - render inmediato + background fetch");
   const tbody=document.getElementById("tbody");
-  thead.innerHTML=`
-    <tr>
-      <th data-col="placa">PLACA <span class="filter-arrow">${ACTIVE_FLOTA.placa?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-f-placa"></div></th>
-      <th data-col="marca">MARCA <span class="filter-arrow">${ACTIVE_FLOTA.marca?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-f-marca"></div></th>
-      <th data-col="modelo">MODELO <span class="filter-arrow">${ACTIVE_FLOTA.modelo?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-f-modelo"></div></th>
-      <th data-col="anio">AÑO <span class="filter-arrow">${ACTIVE_FLOTA.anio?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-f-anio"></div></th>
-      <th data-col="sucursal">SUCURSAL <span class="filter-arrow">${ACTIVE_FLOTA.sucursal?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-f-sucursal"></div></th>
-      <th data-col="estado">ESTADO <span class="filter-arrow">${ACTIVE_FLOTA.estado?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-f-estado"></div></th>
-      <th data-col="consumo">CONSUMO <span class="filter-arrow">${ACTIVE_FLOTA.consumo?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-f-consumo"></div></th>
-      <th>KM</th><th>KM/L</th>
-    </tr>
-  `;
-  tbody.innerHTML=lista.slice(0,120).map(f=>`<tr class="clickable" data-id="${f.id}"><td style="font-weight:900;color:var(--lime)">${f.placa}</td><td>${f.marca}</td><td>${f.modelo}</td><td>${f.anio}</td><td>${f.sucursal}</td><td>${f.estado}</td><td>${f.consumo}</td><td>${f.km}</td><td style="color:var(--green)">${f.kml}</td></tr>`).join("");
-  document.getElementById("filtros-activos").textContent=`• ${lista.length} de ${flotaData.length} • Click header ▼ Excel • Click fila = ficha + historial`;
-  // headers
-  thead.querySelectorAll("th[data-col]").forEach(th=>{ th.addEventListener("click",(e)=>{ e.stopPropagation(); togglePanel(th.getAttribute("data-col")); }); });
-  tbody.querySelectorAll("tr.clickable").forEach(tr=>{ tr.addEventListener("click",()=>{ const id=tr.getAttribute("data-id"); const raw=flotaData.find(x=>String(x.id)===String(id)); if(raw) openFicha(norm(raw)); }); });
-  buildPanels();
+  const info=document.getElementById("filtros-activos");
+  
+  // 1. Render inmediato con estructura vacía para evitar pantalla negra
+  if(tbody) tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted)">⏳ Conectando a Supabase/Render... (timeout 3.5s) - Si tarda, mostrará mock temporal y luego LIVE</td></tr>`;
+  if(info) info.textContent="Conectando a backend Supabase...";
+
+  // 2. Wake backend en background
+  wakeBackend();
+
+  // 3. Fetch con timeout 3.5s (no 5 min)
+  try{
+    const data = await fetchFlota();
+    FLOTA_CACHE = data;
+    IS_LIVE = data.some(f=>f.id && typeof f.id==='number' && f.created_at); // heurística si viene de Supabase real
+    window.FLOTA_GLOBAL = FLOTA_CACHE;
+    console.log(`[Flota] Cargada ${FLOTA_CACHE.length} ${IS_LIVE?'LIVE Supabase':'MOCK temporal'}`);
+    renderFlota();
+  }catch(e){
+    console.error("[Flota] Error", e);
+    // Fallback final
+    FLOTA_CACHE = Array.from({length:200},(_,i)=>{
+      const n=i+1; const isGDL=n<=120;
+      return {id:n, placa:`FG-${String(n).padStart(4,'0')}`, marca:"Scania", modelo:"R-450", anio:2022, sucursal:isGDL?'SUC-GDL-01':'SUC-CLN-01', estado:'En Ruta', consumo_estado:'Normal', kilometraje:10000+n*1234, consumo_promedio:'10.80', mantenimiento:'Vigente'};
+    });
+    renderFlota();
+  }
 }
 
-function togglePanel(col){ const p=document.getElementById(`hdr-f-${col}`); if(!p) return; const open=p.classList.contains("open"); closeAll(); if(!open) p.classList.add("open"); }
-function closeAll(){ document.querySelectorAll(".excel-panel-header").forEach(p=>p.classList.remove("open")); }
-function setupClose(){ document.addEventListener("click",()=>closeAll()); }
+function renderFlota(){
+  const tbody=document.getElementById("tbody");
+  const thead=document.getElementById("thead-flota");
+  if(!tbody) return;
+  
+  if(thead) thead.innerHTML=`<tr><th>PLACA</th><th>MARCA</th><th>MODELO</th><th>AÑO</th><th>SUCURSAL</th><th>ESTADO</th><th>CONSUMO</th><th>KM</th><th>ACCION</th></tr>`;
 
-function buildPanels(){
-  const all=flotaData.map(norm);
-  const vals={
-    placa:[...new Set(all.map(f=>f.placa))].sort(),
-    marca:[...new Set(all.map(f=>f.marca))],
-    modelo:[...new Set(all.map(f=>f.modelo))],
-    anio:[...new Set(all.map(f=>f.anio))].sort(),
-    sucursal:[...new Set(all.map(f=>f.sucursal))],
-    estado:[...new Set(all.map(f=>f.estado))],
-    consumo:[...new Set(all.map(f=>f.consumo))]
-  };
-  Object.entries(vals).forEach(([col, list])=>{
-    const panel=document.getElementById(`hdr-f-${col}`);
-    if(!panel) return;
-    const active=ACTIVE_FLOTA[col];
-    panel.innerHTML=`
-      <input class="excel-search" placeholder="Buscar ${col}..." oninput="window.filtrarFlotaTexto('${col}', this.value)">
-      <div style="max-height:240px;overflow-y:auto" id="list-f-${col}">
-        ${list.slice(0,80).map(v=>`<div class="excel-item" onclick="window.aplicarFlotaFiltro('${col}','${v}')"><input type="checkbox" ${active===v?'checked':''}> ${v}</div>`).join("")}
-      </div>
-      <div class="excel-actions"><button class="btn" onclick="window.aplicarFlotaFiltro('${col}','')">Limpiar</button><button class="btn active" onclick="window.cerrarFlotaPaneles()">Cerrar</button></div>
-    `;
-    panel.addEventListener("click",(e)=>e.stopPropagation());
-  });
+  const data = FLOTA_CACHE.slice(0,120);
+  tbody.innerHTML=data.map(f=>`<tr><td><b style="color:var(--lime)">${f.placa}</b> ${IS_LIVE?'<span style="font-size:8px;color:var(--lime)">LIVE</span>':'<span style="font-size:8px;color:#8b9bb4">MOCK</span>'}</td><td>${f.marca||'Scania'}</td><td>${f.modelo||'R-450'}</td><td>${f.anio||2022}</td><td><span style="font-size:10px;padding:2px 6px;border-radius:999px;background:${(f.sucursal||'').includes('GDL')?'rgba(198,255,0,.15)':'rgba(56,189,248,.15)'};color:${(f.sucursal||'').includes('GDL')?'var(--lime)':'#38BDF8'}">${f.sucursal}</span></td><td>${f.estado||'En Ruta'}</td><td><span class="badge">${f.consumo_estado||'Normal'}</span></td><td>${Number(f.kilometraje||0).toLocaleString()}</td><td><button class="btn small active" onclick="window.abrirFicha('${f.placa}')">Ficha</button></td></tr>`).join('');
+
+  const info=document.getElementById("filtros-activos");
+  if(info) info.textContent=`Flota V12.3 ${IS_LIVE?'LIVE Supabase':'MOCK temporal 3.5s timeout'} - ${FLOTA_CACHE.length} unidades - ${IS_LIVE?'Conectado a Render':'Render despertando... recarga en 30s para LIVE'}`;
+
+  // Reintento automático para pasar de MOCK a LIVE después de 15s
+  if(!IS_LIVE){
+    setTimeout(async()=>{
+      console.log("[Flota] Reintentando LIVE...");
+      try{
+        const retry = await fetchFlota();
+        if(retry.length>0 && retry[0].created_at){
+          FLOTA_CACHE=retry; IS_LIVE=true; renderFlota();
+          console.log("[Flota] Ahora LIVE!");
+        }
+      }catch(_){}
+    }, 15000);
+  }
 }
 
-window.filtrarFlotaTexto=function(col, txt){
-  const list=document.getElementById(`list-f-${col}`);
-  if(!list) return;
-  const lower=txt.toLowerCase();
-  list.querySelectorAll(".excel-item").forEach(it=>{ it.style.display=it.textContent.toLowerCase().includes(lower)?"flex":"none"; });
-};
-window.aplicarFlotaFiltro=function(col, val){
-  ACTIVE_FLOTA[col]=ACTIVE_FLOTA[col]===val?'':val;
-  closeAll();
-  let lista=[...flotaData];
-  if(ACTIVE_FLOTA.placa) lista=lista.filter(c=>(c.placa||`FG-${String(c.id).padStart(4,'0')}`)===ACTIVE_FLOTA.placa);
-  if(ACTIVE_FLOTA.marca) lista=lista.filter(c=>c.marca===ACTIVE_FLOTA.marca);
-  if(ACTIVE_FLOTA.modelo) lista=lista.filter(c=>c.modelo===ACTIVE_FLOTA.modelo);
-  if(ACTIVE_FLOTA.anio) lista=lista.filter(c=>String(c.anio)===ACTIVE_FLOTA.anio);
-  if(ACTIVE_FLOTA.sucursal) lista=lista.filter(c=>(c.sucursales?.clave||'SUC-GDL-01')===ACTIVE_FLOTA.sucursal);
-  if(ACTIVE_FLOTA.estado) lista=lista.filter(c=>c.estado===ACTIVE_FLOTA.estado);
-  if(ACTIVE_FLOTA.consumo) lista=lista.filter(c=>c.consumo_estado===ACTIVE_FLOTA.consumo);
-  filteredFlota=lista;
-  renderTabla(lista);
-};
-window.cerrarFlotaPaneles=function(){ closeAll(); };
-window.limpiarFlotaFiltros=function(){ ACTIVE_FLOTA={placa:'',marca:'',modelo:'',anio:'',sucursal:'',estado:'',consumo:''}; filteredFlota=[...flotaData]; renderTabla(filteredFlota); };
-
-function openFicha(f){
+window.abrirFicha=function(placa){
+  const f = FLOTA_CACHE.find(x=>x.placa===placa) || {placa, marca:'Scania', modelo:'R-450', anio:2022, sucursal:'SUC-GDL-01', estado:'En Ruta', consumo_estado:'Normal', kilometraje:45230, consumo_promedio:'10.80', mantenimiento:'Vigente'};
   const modal=document.getElementById("modal-content");
+  if(!modal) return;
   modal.innerHTML=`
-    <div class="modal-header"><div><div style="font-size:22px;font-weight:950">${f.placa} <span style="font-size:11px;background:rgba(198,255,0,.15);color:var(--lime);padding:4px 10px;border-radius:999px">${f.estado}</span></div><div style="font-size:11px;color:var(--muted)">${f.marca} ${f.modelo} • ${f.anio} • ${f.sucursal}</div></div><button class="close-btn" onclick="closeFlotaFicha()">✕</button></div>
-    <div class="modal-body">
-      <div class="modal-grid">
-        <div class="modal-field"><div class="k">PLACA</div><div class="v" style="color:var(--lime)">${f.placa}</div></div>
-        <div class="modal-field"><div class="k">MARCA / MODELO</div><div class="v">${f.marca} ${f.modelo}</div></div>
-        <div class="modal-field"><div class="k">AÑO</div><div class="v">${f.anio}</div></div>
-        <div class="modal-field"><div class="k">SUCURSAL</div><div class="v">${f.sucursal}</div></div>
-        <div class="modal-field"><div class="k">ESTADO</div><div class="v">${f.estado}</div></div>
-        <div class="modal-field"><div class="k">CONSUMO</div><div class="v">${f.consumo}</div></div>
-        <div class="modal-field"><div class="k">KILOMETRAJE</div><div class="v">${f.km} km</div></div>
-        <div class="modal-field"><div class="k">KM/L</div><div class="v">${f.kml} km/l</div></div>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:16px">
-        <button class="btn active" style="background:var(--lime);color:#000;font-weight:900" onclick="verHistorialDesdeFlota('${f.placa}')">⛽ Ver Historial Recargas</button>
-        <button class="btn" onclick="closeFlotaFicha()">Cerrar</button>
-      </div>
+  <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid rgba(255,255,255,.08)">
+    <div><div style="font-size:22px;font-weight:950">${f.placa} <span class="badge" style="background:rgba(198,255,0,.15);color:#C6FF00">${f.consumo_estado}</span> ${IS_LIVE?'<span style="font-size:9px;background:rgba(198,255,0,.2);padding:2px 6px;border-radius:999px;color:#C6FF00">LIVE Supabase</span>':'<span style="font-size:9px;background:rgba(139,155,180,.15);padding:2px 6px;border-radius:999px">MOCK temporal</span>'}</div><div style="font-size:11px;color:#8b9bb4">${f.marca} ${f.modelo} • ${f.sucursal} • ${f.estado}</div></div>
+    <button class="close-btn" onclick="window.closeFlotaFicha()" style="background:rgba(255,255,255,.1);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer">✕</button>
+  </div>
+  <div class="modal-body" style="display:grid;gap:14px;padding:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">PLACA</div><div class="val" style="color:#C6FF00;font-weight:900">${f.placa}</div></div>
+      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">MARCA / MODELO</div><div class="val">${f.marca} / ${f.modelo}</div></div>
+      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">AÑO</div><div class="val">${f.anio}</div></div>
+      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">SUCURSAL</div><div class="val">${f.sucursal==='SUC-GDL-01'?'Matriz Guadalajara SUC-GDL-01':'Culiacán SUC-CLN-01'}</div></div>
+      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">ESTADO</div><div class="val">${f.estado}</div></div>
+      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">CONSUMO ESTADO</div><div class="val">${f.consumo_estado}</div></div>
+      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">KILOMETRAJE</div><div class="val">${Number(f.kilometraje||0).toLocaleString()} km</div></div>
+      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">CONSUMO PROMEDIO</div><div class="val">Meta ${f.consumo_promedio||'10.80'} km/l</div></div>
+      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">MANTENIMIENTO</div><div class="val" style="color:${f.mantenimiento==='Vencido'?'#EF4444':'#C6FF00'}">${f.mantenimiento||'Vigente'}</div></div>
     </div>
-  `;
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn active" style="background:#C6FF00;color:#000;font-weight:900;padding:8px 14px;border-radius:999px;border:none;cursor:pointer" onclick="window.verHistorialDesdeFlota('${f.placa}')">⛽ Ver Historial</button>
+      <button class="btn" style="padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);cursor:pointer" onclick="window.verRutaDesdeFlota('${f.placa}')">🗺️ Ver Ruta</button>
+    </div>
+  </div>`;
   document.getElementById("modal-overlay").classList.add("open");
-}
-window.closeFlotaFicha=function(){ document.getElementById("modal-overlay").classList.remove("open"); }
-window.verHistorialDesdeFlota=function(placa){
-  closeFlotaFicha();
-  setTimeout(()=>{
-    document.getElementById("view-flota").style.display="none";
-    document.getElementById("view-combustible").style.display="block";
-    document.getElementById("view-dashboard").style.display="none";
-    setTimeout(()=>{ if(window.abrirHistorialPorPlaca) window.abrirHistorialPorPlaca(placa); },800);
-  },200);
-}
-init();
+};
+
+window.closeFlotaFicha=function(){ document.getElementById("modal-overlay")?.classList.remove("open"); };
+window.verHistorialDesdeFlota=function(placa){ window.closeFlotaFicha(); setTimeout(()=>{ document.querySelectorAll("[id^='view-']").forEach(v=>v.style.display="none"); document.getElementById("view-combustible").style.display="block"; },100); };
+window.verRutaDesdeFlota=function(placa){ window.closeFlotaFicha(); setTimeout(()=>{ document.querySelectorAll("[id^='view-']").forEach(v=>v.style.display="none"); document.getElementById("view-rutas").style.display="block"; if(window.centrarEnPin) window.centrarEnPin(placa); },100); };
+window.limpiarFlotaFiltros=function(){ renderFlota(); };
+
+initFlota();

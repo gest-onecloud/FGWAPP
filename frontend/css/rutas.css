@@ -1,12 +1,120 @@
-.rutas-grid{display:grid;grid-template-columns:320px 1fr;gap:14px}
-.map-wrap{width:100%;height:520px;background:#141820;border:1px solid var(--border);border-radius:16px;overflow:hidden;position:relative}
-#map-rutas{width:100%;height:100%;background:#0B0E14}
-.map-stats{position:absolute;top:10px;left:10px;z-index:400;background:rgba(20,24,32,.92);border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:11px}
-.gps-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px}
-.gps-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px}
-.gps-card .k{font-size:10px;color:var(--muted);font-weight:800} .gps-card .v{font-size:16px;font-weight:950;margin-top:4px}
-.marker-pin{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px;border:2px solid #000}
-.marker-enruta{background:#C6FF00;color:#000}
-.marker-enbase{background:#00FFA3;color:#000}
-.marker-entaller{background:#F59E0B;color:#000}
-.marker-disponible{background:#38BDF8;color:#000}
+/* RUTAS CSS V12 - Mapa oscuro FGWAPP - Generado de nuevo */
+.rutas-grid{
+  display:grid;
+  grid-template-columns:1fr 340px;
+  gap:12px;
+  height:calc(100vh - 140px);
+  min-height:500px;
+}
+.rutas-map{
+  width:100%;
+  height:100%;
+  min-height:500px;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid var(--border);
+  background:#0B0E14;
+  position:relative;
+  z-index:1;
+}
+.rutas-panel{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:16px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.rutas-kpi{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.rutas-kpi-item{
+  background:var(--card2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:10px;
+}
+.rutas-kpi-item .k{
+  font-size:9px;
+  color:var(--muted);
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+.rutas-kpi-item .v{
+  font-size:18px;
+  font-weight:950;
+  margin-top:4px;
+}
+.rutas-list{
+  flex:1;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  max-height:60vh;
+}
+.rutas-item{
+  padding:8px 10px;
+  background:var(--card2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  cursor:pointer;
+  font-size:11px;
+  transition:all .15s;
+}
+.rutas-item:hover{
+  border-color:var(--lime);
+  background:rgba(198,255,0,.06);
+}
+.rutas-item.active{
+  border-color:var(--lime);
+  background:rgba(198,255,0,.12);
+}
+@media(max-width:900px){
+  .rutas-grid{
+    grid-template-columns:1fr;
+    height:auto;
+  }
+  .rutas-map{
+    height:420px;
+    min-height:420px;
+  }
+  .rutas-list{
+    max-height:300px;
+  }
+}
+.leaflet-container{
+  background:#0B0E14 !important;
+}
+.custom-pin{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  border:2px solid #000;
+  display:inline-block;
+}
+.pin-gdl{
+  background:var(--lime);
+  box-shadow:0 0 8px rgba(198,255,0,.8);
+}
+.pin-cln{
+  background:#38BDF8;
+  box-shadow:0 0 8px rgba(56,189,248,.8);
+}
+.leaflet-popup-content-wrapper{
+  background:#1C212E !important;
+  color:#E2E8F0 !important;
+  border:1px solid #2A2E3A;
+  border-radius:12px !important;
+}
+.leaflet-popup-tip{
+  background:#1C212E !important;
+}
