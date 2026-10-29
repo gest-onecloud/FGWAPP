@@ -1,14 +1,13 @@
-/* COMBUSTIBLE CSS - Diseño separado - Historial timeline */
 .comb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:16px}
 .comb-kpi{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px}
-.comb-kpi .lbl{font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:1px}
+.comb-kpi .lbl{font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase}
 .comb-kpi .val{font-size:22px;font-weight:950;margin-top:8px}
 .comb-kpi .sub{font-size:11px;color:var(--muted);margin-top:6px}
 .card-full{width:100%;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:0;overflow:hidden}
 .timeline-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:9999;padding:20px}
 .timeline-overlay.open{display:flex !important}
-.timeline-modal{background:#1C212E;border:1px solid var(--border);border-radius:20px;max-width:720px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.8)}
-.timeline-modal-header{display:flex;justify-content:space-between;padding:18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#1C212E;z-index:1}
+.timeline-modal{background:#1C212E;border:1px solid var(--border);border-radius:20px;max-width:720px;width:100%;max-height:85vh;overflow-y:auto}
+.timeline-modal-header{display:flex;justify-content:space-between;padding:18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:#1C212E}
 .timeline-modal-body{padding:18px}
 .timeline{display:flex;flex-direction:column;margin-left:12px;border-left:2px dashed rgba(198,255,0,.25);padding-left:16px}
 .tl-item{position:relative;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px}

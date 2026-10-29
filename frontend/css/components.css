@@ -7,16 +7,20 @@
 .modal-field{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
 .modal-field .k{font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase}
 .modal-field .v{font-size:13px;font-weight:800;margin-top:6px}
-@media(max-width:600px){.modal-grid{grid-template-columns:1fr}}
-.excel-panel-header{position:absolute;top:36px;left:0;background:#1C212E;border:1px solid #2A2E3A;border-radius:12px;padding:10px;min-width:220px;max-width:260px;max-height:340px;overflow-y:auto;z-index:100;display:none;box-shadow:0 16px 40px rgba(0,0,0,.7)}
-.excel-panel-header.open{display:block}
-.excel-item{display:flex;gap:8px;align-items:center;padding:7px 6px;font-size:11px;cursor:pointer;border-radius:6px}
-.excel-item:hover{background:rgba(198,255,0,.08)}
 .table-full-wrap{width:100%;overflow-x:auto}
 .table-full{width:100%;border-collapse:collapse}
 .table-full th{position:relative;padding:12px 18px 12px 10px;font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer;background:var(--card);user-select:none}
 .table-full th:hover{background:rgba(198,255,0,.04);color:var(--text)}
+.table-full th.active-filter{color:var(--lime);background:rgba(198,255,0,.08)}
 .table-full td{padding:10px;font-size:11px;border-bottom:1px solid rgba(35,38,47,.6);white-space:nowrap}
 .table-full tbody tr.clickable{cursor:pointer}
 .table-full tbody tr.clickable:hover{background:rgba(198,255,0,.06)}
 .filter-arrow{font-size:9px;margin-left:6px;opacity:.6}
+.excel-panel-header{position:absolute;top:36px;left:0;background:#1C212E;border:1px solid #2A2E3A;border-radius:12px;padding:10px;min-width:220px;max-width:280px;max-height:380px;overflow-y:auto;z-index:9998;display:none;box-shadow:0 16px 40px rgba(0,0,0,.7)}
+.excel-panel-header.open{display:block}
+.excel-search{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:11px;color:var(--text);margin-bottom:8px}
+.excel-item{display:flex;gap:8px;align-items:center;padding:7px 6px;font-size:11px;cursor:pointer;border-radius:6px}
+.excel-item:hover{background:rgba(198,255,0,.08)}
+.excel-item input{accent-color:var(--lime)}
+.excel-actions{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
+.excel-actions .btn{flex:1;padding:6px;font-size:10px}

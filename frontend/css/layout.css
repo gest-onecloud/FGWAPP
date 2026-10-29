@@ -1,15 +1,11 @@
-.sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:100vh}
 .logo{font-weight:950;font-size:18px} .logo small{display:block;font-size:11px;color:var(--muted);font-weight:400} .logo .ver{display:block;font-size:10px;color:var(--lime);margin-top:6px}
 .menu{display:flex;flex-direction:column;gap:6px}
 .menu-item{padding:10px 12px;border-radius:12px;border:1px solid transparent;cursor:pointer;display:flex;flex-direction:column}
 .menu-item b{font-size:12px} .menu-item i{font-size:10px;color:var(--muted);font-style:normal;margin-top:2px}
-.menu-item:hover{background:var(--card2);border-color:var(--border)} .menu-item.active{background:var(--card2);border-color:var(--lime);color:var(--lime)}
+.menu-item.active{background:var(--card2);border-color:var(--lime);color:var(--lime)}
 .main{flex:1;padding:18px;overflow-y:auto}
 .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .h1{font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.8px;flex:1;min-width:280px}
 .kpi{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px}
-.kpi .lbl{font-size:10px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:1px}
-.kpi .val{font-size:22px;font-weight:950;margin-top:8px}
-.kpi .sub{font-size:11px;color:var(--muted);margin-top:6px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px}
-@media(max-width:900px){.sidebar{width:100%;height:auto;position:relative} body{flex-direction:column} .h1{min-width:100%}}
