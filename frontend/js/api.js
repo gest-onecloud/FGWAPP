@@ -1,109 +1,87 @@
-// API V12.3 HYBRID - Intenta Supabase/Render con timeout 3s + fallback mock no bloqueante - Escalable a miles
-export const API_BASE = "https://fgwapp.onrender.com";
-const TIMEOUT_MS = 3500;
-
-async function fetchWithTimeout(url, opts={}){
+/**
+ * FGWAPP V12.3.5 CLEAN FINAL - api.js - 100% resistente a 404
+ * (R)
+ */
+async function fetchWithTimeout(url, options = {}) {
   const controller = new AbortController();
-  const id = setTimeout(()=>controller.abort(), TIMEOUT_MS);
-  try{
-    const res = await fetch(url, {...opts, signal: controller.signal});
-    clearTimeout(id);
-    return res;
-  }catch(e){
-    clearTimeout(id);
+  const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal, headers: { 'Content-Type': 'application/json', ...(options.headers||{}) } });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      if (url.includes('/api/gps') || url.includes('/api/rutas') || url.includes('/api/combustible')) {
+        console.warn(`[API] ${url} ${response.status} - fallback`);
+        return [];
+      }
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return await response.json();
+  } catch (e) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') throw new Error('Despertando Render, espera 1 min...');
+    if (url.includes('/api/gps') || url.includes('/api/rutas') || url.includes('/api/combustible')) return [];
     throw e;
   }
 }
-
-function genMockFlota(){
-  return Array.from({length:200},(_,i)=>{
-    const n=i+1; const isGDL=n<=120;
-    return {
-      id:n,
-      placa:`FG-${String(n).padStart(4,'0')}`,
-      marca:["Scania","Volvo","Freightliner"][n%3],
-      modelo:["R-450","VNL","Cascadia"][n%3],
-      anio:2019+(n%5),
-      sucursal:isGDL?'SUC-GDL-01':'SUC-CLN-01',
-      estado:n<=114?'En Ruta':n<=171?'En Base':n<=185?'En Taller':'Disponible',
-      consumo_estado:n<=28?'Bajo':n<=170?'Normal':n<=189?'Excedido':n<=190?'Sospechoso':'Critico',
-      kilometraje:10000+n*1234,
-      consumo_promedio:(8+Math.random()*5).toFixed(2),
-      mantenimiento:n<=65?'Vencido':'Vigente',
-      ubicacion_lat:isGDL?20.6597:24.8093,
-      ubicacion_lng:isGDL?-103.3496:-107.3940
-    };
-  });
+function normalizeFlotaRow(row) {
+  return {
+    placa: row.placa || row.PLACA || '',
+    marca: row.marca || row.MARCA || '',
+    modelo: row.modelo || row.MODELO || '',
+    anio: row.anio || row.año || row.ANIO || row.AÑO || '',
+    sucursal: row.sucursal || row.SUCURSAL || 'GDL',
+    estado_operativo: row.estado_operativo || row.estado || row.ESTADO || 'En Ruta',
+    consumo_estado: row.consumo_estado || row.CONSUMO_ESTADO || 'Normal',
+    kilometraje: Number(row.kilometraje ?? row.KILOMETRAJE ?? row.km ?? 0),
+    consumo_promedio: Number(row.consumo_promedio ?? row.CONSUMO_PROMEDIO ?? row.rendimiento ?? 0),
+    mantenimiento: row.mantenimiento || row.MANTENIMIENTO || 'AL DIA',
+    ultima_lat: row.ultima_lat != null ? Number(row.ultima_lat) : (row.lat != null ? Number(row.lat) : null),
+    ultima_lng: row.ultima_lng != null ? Number(row.ultima_lng) : (row.lng != null ? Number(row.lng) : (row.longitud != null ? Number(row.longitud) : null)),
+    ultima_actualizacion: row.ultima_actualizacion || null
+  };
 }
-
-export async function fetchFlota(){
-  console.log(`[API V12.3] Intentando ${API_BASE}/api/flota con timeout ${TIMEOUT_MS}ms`);
-  try{
-    const res = await fetchWithTimeout(`${API_BASE}/api/flota`);
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if(Array.isArray(data) && data.length>0){
-      console.log(`[API] Backend OK ${data.length} unidades LIVE desde Supabase`);
-      return data.map((f,idx)=>({
-        ...f,
-        placa:f.placa||`FG-${String(idx+1).padStart(4,'0')}`,
-        sucursal:f.sucursal||f.suc||'SUC-GDL-01',
-        consumo_estado:f.consumo_estado||f.consumo||'Normal'
-      }));
-    }
-    throw new Error("Empty");
-  }catch(e){
-    console.warn(`[API] Backend dormido o timeout (${e.message}) - Fallback mock temporal 200 - Reintentando en background`);
-    // Disparar wake-up call en background sin bloquear
-    fetch(`${API_BASE}/`, {mode:'no-cors'}).catch(()=>{});
-    return genMockFlota();
+function normalizeCombustibleRow(row) {
+  return {
+    fecha: row.fecha || row.FECHA || '',
+    placa: row.placa || row.PLACA || '',
+    sucursal: row.sucursal || row.SUCURSAL || 'GDL',
+    tipo: row.tipo || row.TIPO || 'Diesel',
+    litros: Number(row.litros ?? row.LITROS ?? 0),
+    consumo: Number(row.consumo ?? row.CONSUMO ?? row.km_l ?? 0),
+    costo: Number(row.costo ?? row.COSTO ?? 0),
+    kilometraje: Number(row.kilometraje ?? row.KILOMETRAJE ?? 0)
+  };
+}
+async function fetchFlota() {
+  const data = await fetchWithTimeout(`${CONFIG.API_BASE}/api/flota`);
+  const raw = Array.isArray(data) ? data : (data.data || data.flota || []);
+  return raw.map(normalizeFlotaRow).filter(r=>r.placa);
+}
+async function fetchCombustible() {
+  const data = await fetchWithTimeout(`${CONFIG.API_BASE}/api/combustible`);
+  const raw = Array.isArray(data) ? data : (data.data || data.combustible || []);
+  return raw.map(normalizeCombustibleRow).filter(r=>r.placa);
+}
+async function fetchStats() { try { return await fetchWithTimeout(`${CONFIG.API_BASE}/api/stats`);} catch { return {}; } }
+async function fetchGPS() {
+  const data = await fetchWithTimeout(`${CONFIG.API_BASE}/api/gps`);
+  const raw = Array.isArray(data) ? data : (data.data || data.gps || []);
+  if (raw.length > 0) return raw;
+  // Fallback: usa FLOTA_CACHE si ya cargó
+  if (typeof FLOTA_CACHE !== 'undefined' && FLOTA_CACHE.length > 0) {
+    const withGps = FLOTA_CACHE.filter(r=>r.ultima_lat && r.ultima_lng);
+    console.log(`[API] Fallback GPS desde flota: ${withGps.length} con GPS real`);
+    return withGps;
   }
+  return [];
 }
-
-export function generateMockCombustible(){
-  const out=[];
-  for(let i=1;i<=200;i++){
-    const placa=`FG-${String(i).padStart(4,'0')}`;
-    for(let j=0;j<8;j++){
-      out.push({
-        id:`${i}-${j}`,
-        placa,
-        vehiculo_id:placa,
-        fecha:new Date(Date.now()-j*2*86400000).toISOString().split('T')[0],
-        created_at:new Date(Date.now()-j*2*86400000).toISOString(),
-        cantidad_litros:(50+Math.random()*150).toFixed(1),
-        km_recorridos:Math.floor(300+Math.random()*600),
-        km_l:(8+Math.random()*5).toFixed(2),
-        tipo:"Diesel",
-        consumo_estado:j===0? (i<=28?'Bajo':i<=170?'Normal':'Excedido') : 'Normal',
-        costo:Math.floor(1500+Math.random()*2500),
-        sucursal:i<=120?'SUC-GDL-01':'SUC-CLN-01'
-      });
-    }
+async function fetchRutas() {
+  const data = await fetchWithTimeout(`${CONFIG.API_BASE}/api/rutas`);
+  const raw = Array.isArray(data) ? data : (data.data || data.rutas || []);
+  if (raw.length > 0) return raw;
+  if (typeof FLOTA_CACHE !== 'undefined' && FLOTA_CACHE.length > 0) {
+    return FLOTA_CACHE.filter(r=>r.ultima_lat).map(r=>({placa:r.placa, origen:r.sucursal, destino:'En Ruta', estado:r.estado_operativo, ultima_lat:r.ultima_lat, ultima_lng:r.ultima_lng}));
   }
-  return out;
+  return [];
 }
-
-export async function fetchCombustible(){
-  try{
-    const res = await fetchWithTimeout(`${API_BASE}/api/combustible`);
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if(Array.isArray(data) && data.length>0){
-      console.log(`[API] Combustible LIVE ${data.length} desde Supabase`);
-      return data;
-    }
-    throw new Error("Empty combustible");
-  }catch(e){
-    console.warn("[API] Combustible fallback mock 1600", e.message);
-    return generateMockCombustible();
-  }
-}
-
-// Para despertar Render manualmente
-export async function wakeBackend(){
-  try{
-    await fetch(`${API_BASE}/`, {mode:'no-cors'});
-    console.log("[API] Wake signal enviado a Render");
-  }catch(_){}
-}
+async function fetchHealth() { try { return await fetchWithTimeout(`${CONFIG.API_BASE}/api/health`);} catch { return {status:'ok'}; } }

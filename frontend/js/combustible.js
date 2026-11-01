@@ -1,59 +1,174 @@
-// COMBUSTIBLE V11.8
-import { fetchCombustible, genMock, genHistorial } from './api.js';
-let DATA=[]; let ACTIVE_FILTERS = { fecha:'', placa:'', sucursal:'', tipo:'', consumo:'' };
-export async function initCombustible(){
-  const res=await fetchCombustible();
-  DATA=res.lista && res.lista.length>0 ? res.lista : genMock();
-  window._combDataGlobal=DATA;
-  renderStats(res.stats);
-  renderTable(DATA);
-  setupClose();
+/**
+ * FGWAPP V12.3.4 CLEAN FIX - combustible.js
+ * Fix 0 recargas LIVE - Reintento y fallback
+ * (R)
+ */
+
+let COMB_CACHE = [];
+let COMB_FILTERED = [];
+
+function initCombustible() {
+  console.log('[COMB] V12.3.4 CLEAN FIX');
+  loadCombustibleData();
 }
-function renderStats(s){
-  const stats=s||{total_cargas:DATA.length, promedio_km_l:6.24, por_optimizar:22, costo_mes:145800};
-  const el=document.getElementById("comb-stats");
-  el.innerHTML=`<div class="comb-kpi"><div class="lbl">Cargas</div><div class="val">${stats.total_cargas} LIVE</div></div><div class="comb-kpi"><div class="lbl">Promedio</div><div class="val" style="color:var(--green)">${stats.promedio_km_l} km/l</div></div><div class="comb-kpi"><div class="lbl">Por Optimizar</div><div class="val" style="color:var(--orange)">${stats.por_optimizar}</div></div><div class="comb-kpi"><div class="lbl">Costo Mes</div><div class="val">$${Number(stats.costo_mes).toLocaleString()}</div></div>`;
+
+async function loadCombustibleData() {
+  const tbody = document.getElementById('tbody-comb');
+  const info = document.getElementById('comb-info');
+  
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;">Cargando 1600 recargas LIVE de Supabase... (R)</td></tr>';
+  
+  try {
+    let data = await fetchCombustible();
+    
+    // Si viene vacio, reintenta 1 vez despues de 5s (Render cold start)
+    if (data.length === 0) {
+      console.warn('[COMB] 0 recargas, reintentando en 5s - posible cold start');
+      if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;">0 recargas por ahora, reintentando...<br><small>Backend despertando, espera 1 min (R)</small></td></tr>';
+      await new Promise(r => setTimeout(r, 5000));
+      data = await fetchCombustible();
+    }
+    
+    COMB_CACHE = data;
+    COMB_FILTERED = [...data];
+    
+    console.log(`[COMB] ${data.length} recargas LIVE`);
+    renderStats(COMB_CACHE);
+    renderTable(COMB_FILTERED);
+    buildPanels(COMB_CACHE);
+    
+    if (info) info.textContent = data.length > 0 ? `Mostrando ${Math.min(200, COMB_FILTERED.length)} de ${COMB_CACHE.length} - V12.3.4 CLEAN` : `0 recargas - Verifique /api/combustible en backend - V12.3.4`;
+  } catch (error) {
+    console.error('[COMB] Error:', error);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#ef4444;padding:24px;">${error.message}<br><small>Reintentando...</small></td></tr>`;
+  }
 }
-function renderTable(lista){
-  const thead=document.getElementById("thead-comb");
-  const tbody=document.getElementById("tbody-comb");
-  thead.innerHTML=`<tr><th data-col="fecha">FECHA <span class="filter-arrow">${ACTIVE_FILTERS.fecha?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-c-fecha"></div></th><th data-col="placa">PLACA <span class="filter-arrow">${ACTIVE_FILTERS.placa?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-c-placa"></div></th><th data-col="sucursal">SUCURSAL <span class="filter-arrow">${ACTIVE_FILTERS.sucursal?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-c-sucursal"></div></th><th>LITROS</th><th>KM</th><th>KM/L</th><th data-col="tipo">TIPO <span class="filter-arrow">${ACTIVE_FILTERS.tipo?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-c-tipo"></div></th><th data-col="consumo">CONSUMO <span class="filter-arrow">${ACTIVE_FILTERS.consumo?'▲':'▼'}</span><div class="excel-panel-header" id="hdr-c-consumo"></div></th><th>COSTO</th></tr>`;
-  tbody.innerHTML=lista.slice(0,150).map(c=>`<tr class="clickable" data-placa="${c.placa}"><td>${c.fecha}</td><td style="font-weight:900;color:var(--lime)">${c.placa}</td><td>${c.sucursal}</td><td>${c.litros} L</td><td>${c.km_recorridos}</td><td style="color:var(--green)">${c.rendimiento}</td><td>${c.tipo}</td><td>${c.consumo_estado}</td><td>$${c.costo}</td></tr>`).join("");
-  document.getElementById("comb-info").textContent=`• ${lista.length} de ${DATA.length} • Header ▼ Excel`;
-  thead.querySelectorAll("th[data-col]").forEach(th=>{ th.addEventListener("click",(e)=>{ e.stopPropagation(); togglePanel(th.getAttribute("data-col")); }); });
-  tbody.querySelectorAll("tr.clickable").forEach(tr=>{ tr.addEventListener("click",()=>{ const placa=tr.getAttribute("data-placa"); abrirHistorialPorPlaca(placa); }); });
-  buildPanels();
+
+function renderStats(data) {
+  const container = document.getElementById('comb-stats');
+  if (!container) return;
+  
+  if (data.length === 0) {
+    container.innerHTML = `<div class="stat-card"><label>Total Recargas</label><span>0</span></div><div class="stat-card"><label>Estado</label><span style="font-size:14px;">Sin datos - Revisar /api/combustible</span></div>`;
+    return;
+  }
+  
+  const totalLitros = data.reduce((s, d) => s + (d.litros || 0), 0);
+  const totalCosto = data.reduce((s, d) => s + (d.costo || 0), 0);
+  const consumoProm = data.filter(d => d.consumo > 0).reduce((s, d) => s + d.consumo, 0) / (data.filter(d => d.consumo > 0).length || 1);
+  const placasUnicas = new Set(data.map(d => d.placa)).size;
+  
+  container.innerHTML = `
+    <div class="stat-card"><label>Total Recargas</label><span>${data.length}</span></div>
+    <div class="stat-card"><label>Total Litros</label><span>${totalLitros.toLocaleString(undefined,{maximumFractionDigits:1})} L</span></div>
+    <div class="stat-card"><label>Costo Total</label><span>$${totalCosto.toLocaleString(undefined,{maximumFractionDigits:2})}</span></div>
+    <div class="stat-card"><label>Consumo Prom</label><span>${consumoProm.toFixed(2)} km/l</span></div>
+    <div class="stat-card"><label>Unidades</label><span>${placasUnicas}</span></div>
+  `;
 }
-function togglePanel(col){ const p=document.getElementById(`hdr-c-${col}`); if(!p) return; const open=p.classList.contains("open"); closeAll(); if(!open) p.classList.add("open"); }
-function closeAll(){ document.querySelectorAll(".excel-panel-header").forEach(p=>p.classList.remove("open")); }
-function buildPanels(){
-  const fechas=[...new Set(DATA.map(c=>c.fecha))].sort().reverse().slice(0,20);
-  const placas=[...new Set(DATA.map(c=>c.placa))].sort();
-  const sucs=[...new Set(DATA.map(c=>c.sucursal))];
-  const tipos=[...new Set(DATA.map(c=>c.tipo))];
-  const consumos=["Eficiente","Optimo","Por Revisar","Atencion","Oportunidad Mejora"];
-  const map={fecha:fechas, placa:placas, sucursal:sucs, tipo:tipos, consumo:consumos};
-  Object.entries(map).forEach(([col, vals])=>{
-    const panel=document.getElementById(`hdr-c-${col}`);
-    if(!panel) return;
-    const active=ACTIVE_FILTERS[col];
-    panel.innerHTML=`<input class="excel-search" placeholder="Buscar ${col}..." oninput="window.filtrarPanelTexto('${col}', this.value)"><div style="max-height:240px;overflow-y:auto" id="list-c-${col}">${vals.map(v=>`<div class="excel-item" onclick="window.aplicarFiltroExcel('${col}','${v}')"><input type="checkbox" ${active===v?'checked':''}> ${v}</div>`).join("")}</div><div class="excel-actions"><button class="btn" onclick="window.aplicarFiltroExcel('${col}','')">Limpiar</button><button class="btn active" onclick="window.cerrarPanelesExcel()">Cerrar</button></div>`;
-    panel.addEventListener("click",(e)=>e.stopPropagation());
+
+function renderTable(data) {
+  const tbody = document.getElementById('tbody-comb');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#64748b;">No hay recargas LIVE en Supabase<br><small>Tabla combustible_cargas vacia o /api/combustible retorna []</small></td></tr>';
+    return;
+  }
+  
+  data.slice(0, 200).forEach(row => {
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.innerHTML = `
+      <td>${formatFecha(row.fecha)}</td>
+      <td><strong>${row.placa}</strong></td>
+      <td>${row.sucursal}</td>
+      <td>${row.tipo}</td>
+      <td>${row.litros.toFixed(1)} L</td>
+      <td>${row.consumo ? row.consumo.toFixed(2) + ' km/l' : '-'}</td>
+      <td>${row.costo ? '$' + row.costo.toFixed(2) : '-'}</td>
+    `;
+    tr.addEventListener('click', () => abrirHistorialPorPlaca(row.placa));
+    tbody.appendChild(tr);
   });
 }
-window.filtrarPanelTexto=function(col, txt){ const list=document.getElementById(`list-c-${col}`); if(!list) return; const lower=txt.toLowerCase(); list.querySelectorAll(".excel-item").forEach(item=>{ item.style.display=item.textContent.toLowerCase().includes(lower)?"flex":"none"; }); };
-window.aplicarFiltroExcel=function(col, val){ ACTIVE_FILTERS[col]=ACTIVE_FILTERS[col]===val?'':val; closeAll(); let lista=[...DATA]; if(ACTIVE_FILTERS.fecha) lista=lista.filter(c=>c.fecha===ACTIVE_FILTERS.fecha); if(ACTIVE_FILTERS.placa) lista=lista.filter(c=>c.placa===ACTIVE_FILTERS.placa); if(ACTIVE_FILTERS.sucursal) lista=lista.filter(c=>c.sucursal===ACTIVE_FILTERS.sucursal); if(ACTIVE_FILTERS.tipo) lista=lista.filter(c=>c.tipo===ACTIVE_FILTERS.tipo); if(ACTIVE_FILTERS.consumo) lista=lista.filter(c=>c.consumo_estado===ACTIVE_FILTERS.consumo); renderTable(lista); };
-window.cerrarPanelesExcel=function(){ closeAll(); };
-function setupClose(){ document.addEventListener("click",()=>closeAll()); }
-function abrirHistorialPorPlaca(placa){ let lista=DATA.filter(c=>c.placa===placa); if(lista.length===0) lista=genHistorial(placa); abrirModalHistorial(lista, placa); }
-function abrirModalHistorial(lista, placa){
-  let overlay=document.getElementById("timeline-overlay");
-  if(!overlay){ overlay=document.createElement("div"); overlay.id="timeline-overlay"; overlay.className="timeline-overlay"; overlay.innerHTML='<div class="timeline-modal" id="timeline-modal-inner"></div>'; document.body.appendChild(overlay); }
-  const inner=document.getElementById("timeline-modal-inner");
-  inner.innerHTML=`<div class="timeline-modal-header"><div><div style="font-size:18px;font-weight:950">⛽ Historial • ${placa} • ${lista.length} recargas</div></div><button class="close-btn" onclick="window.cerrarHistorial()">✕</button></div><div class="timeline-modal-body"><div class="timeline">${lista.map(c=>`<div class="tl-item"><b>${c.fecha} • ${c.rendimiento} km/l • ${c.litros} L</b><br><span style="font-size:11px;color:var(--muted)">${c.km_recorridos} km • ${c.tipo} • $${c.costo}</span></div>`).join("")}</div></div>`;
-  overlay.classList.add("open");
+
+function formatFecha(fechaStr) {
+  if (!fechaStr) return '-';
+  try {
+    const d = new Date(fechaStr);
+    if (isNaN(d.getTime())) return String(fechaStr).slice(0, 10);
+    return d.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: '2-digit' });
+  } catch { return String(fechaStr).slice(0, 10); }
 }
-function cerrarHistorial(){ const o=document.getElementById("timeline-overlay"); if(o) o.classList.remove("open"); }
-window.abrirHistorialPorPlaca=abrirHistorialPorPlaca;
-window.cerrarHistorial=cerrarHistorial;
-window.limpiarFiltrosComb=function(){ ACTIVE_FILTERS={fecha:'',placa:'',sucursal:'',tipo:'',consumo:''}; renderTable(DATA); };
+
+function buildPanels(data) {
+  const thead = document.getElementById('thead-comb');
+  if (!thead || data.length === 0) return;
+  const campos = [
+    { key: 'fecha', label: 'FECHA', getVal: (d) => formatFecha(d.fecha) },
+    { key: 'placa', label: 'PLACA', getVal: (d) => d.placa },
+    { key: 'sucursal', label: 'SUCURSAL', getVal: (d) => d.sucursal },
+    { key: 'tipo', label: 'TIPO', getVal: (d) => d.tipo },
+    { key: 'consumo', label: 'CONSUMO', getVal: (d) => d.consumo ? `${d.consumo.toFixed(1)} km/l` : 'Sin dato' }
+  ];
+  document.querySelectorAll('.excel-panel-header.comb-panel').forEach(el => el.remove());
+  const tr = thead.querySelector('tr');
+  if (!tr) return;
+  const ths = tr.querySelectorAll('th');
+  campos.forEach((campo, idx) => {
+    if (!ths[idx]) return;
+    const th = ths[idx];
+    th.style.cursor = 'pointer';
+    th.innerHTML = `${campo.label} <span style="font-size:10px;">▼</span>`;
+    th.onclick = (e) => { e.stopPropagation(); toggleCombExcelPanel(campo, data, th); };
+  });
+}
+
+function toggleCombExcelPanel(campo, data, anchorTh) {
+  closeAllExcelPanels();
+  const valores = [...new Set(data.map(d => campo.getVal(d)).filter(Boolean))].sort();
+  const panel = document.createElement('div');
+  panel.className = 'excel-panel-header comb-panel';
+  panel.style.cssText = 'position:absolute;min-width:220px;max-height:340px;overflow-y:auto;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.15);z-index:100;padding:8px;';
+  const rect = anchorTh.getBoundingClientRect();
+  panel.style.top = `${rect.bottom + window.scrollY + 4}px`;
+  panel.style.left = `${rect.left + window.scrollX}px`;
+  panel.innerHTML = `<div style="display:flex;justify-content:space-between;padding:4px 8px;border-bottom:1px solid #e2e8f0;"><strong style="font-size:12px;">${campo.label}</strong><button onclick="closeAllExcelPanels()" style="border:none;background:none;cursor:pointer;">✕</button></div><div style="padding:4px;max-height:200px;overflow-y:auto;">${valores.slice(0,100).map(v => `<label><input type="checkbox" value="${v}" checked class="comb-filter-cb"> ${v}</label>`).join('')}</div>`;
+  document.body.appendChild(panel);
+}
+
+function abrirHistorialPorPlaca(placa) {
+  let overlay = document.getElementById('timeline-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'timeline-overlay';
+    overlay.className = 'timeline-overlay';
+    overlay.innerHTML = '<div class="timeline-modal-inner" id="timeline-modal-inner"></div>';
+    document.body.appendChild(overlay);
+  }
+  let inner = document.getElementById('timeline-modal-inner');
+  if (!inner) {
+    inner = document.createElement('div');
+    inner.id = 'timeline-modal-inner';
+    inner.className = 'timeline-modal-inner';
+    overlay.innerHTML = '';
+    overlay.appendChild(inner);
+  }
+  const historial = COMB_CACHE.filter(r => r.placa === placa).sort((a,b) => new Date(b.fecha) - new Date(a.fecha));
+  if (historial.length === 0) {
+    inner.innerHTML = `<div class="timeline-header"><h3>Historial - ${placa}</h3><button onclick="cerrarHistorial()">✕</button></div><div style="padding:40px;text-align:center;">No hay recargas para ${placa}</div><div class="timeline-footer"><button class="btn-secondary" onclick="cerrarHistorial()">Volver a tabla</button></div>`;
+  } else {
+    const totalLitros = historial.reduce((s,d) => s + d.litros, 0);
+    inner.innerHTML = `<div class="timeline-header"><h3>Historial - ${placa} - ${historial.length} recargas</h3><button onclick="cerrarHistorial()">✕</button></div><div class="timeline-summary"><span>Total: ${totalLitros.toFixed(1)} L</span></div><div class="timeline-list">${historial.map(r => `<div class="timeline-item"><div class="timeline-dot"></div><div class="timeline-content"><div class="timeline-date">${formatFecha(r.fecha)}</div><div class="timeline-details"><strong>${r.litros.toFixed(1)} L - ${r.tipo}</strong><br><small>${r.sucursal} - ${r.consumo ? r.consumo.toFixed(2) + ' km/l' : ''}</small></div></div></div>`).join('')}</div><div class="timeline-footer"><button class="btn-secondary" onclick="cerrarHistorial()">Volver a tabla</button></div>`;
+  }
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarHistorial() {
+  const overlay = document.getElementById('timeline-overlay');
+  if (overlay) overlay.classList.remove('active');
+  document.body.style.overflow = '';
+}

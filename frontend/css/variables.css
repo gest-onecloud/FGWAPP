@@ -1,8 +1,18 @@
-:root{--bg:#0B0E14;--card:#141820;--card2:#1C212E;--border:#2A2E3A;--text:#E2E8F0;--muted:#94A3B8;--lime:#C6FF00;--green:#00FFA3;--orange:#F59E0B;--yellow:#FBBF24;--red:#EF4444;}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;display:flex;min-height:100vh}
-.btn{background:var(--card2);border:1px solid var(--border);color:var(--text);padding:8px 14px;border-radius:999px;font-size:11px;cursor:pointer}
-.btn.active{background:var(--lime);color:#000;font-weight:900}
-.close-btn{background:var(--card2);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:50%;cursor:pointer}
-.badge{font-size:10px;font-weight:800;padding:4px 10px;border-radius:999px;border:1px solid var(--border);display:inline-block}
-.b-lime{background:rgba(198,255,0,.15);color:var(--lime)} .b-green{background:rgba(0,255,163,.12);color:var(--green)} .b-orange{background:rgba(245,158,11,.15);color:var(--orange)} .b-yellow{background:rgba(251,191,36,.15);color:var(--yellow)} .b-red{background:rgba(239,68,68,.15);color:var(--red)}
+/* FGWAPP V12.3 CLEAN - variables.css */
+:root {
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --primary: #0f172a;
+  --primary-hover: #1e293b;
+  --ok: #10b981;
+  --warn: #f59e0b;
+  --bad: #ef4444;
+  --radius: 8px;
+  --shadow: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+  --font: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --meta-consumo: 10.80;
+}

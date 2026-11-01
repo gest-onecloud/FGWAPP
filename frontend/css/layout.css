@@ -1,11 +1,34 @@
-.sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:100vh}
-.logo{font-weight:950;font-size:18px} .logo small{display:block;font-size:11px;color:var(--muted);font-weight:400} .logo .ver{display:block;font-size:10px;color:var(--lime);margin-top:6px}
-.menu{display:flex;flex-direction:column;gap:6px}
-.menu-item{padding:10px 12px;border-radius:12px;border:1px solid transparent;cursor:pointer;display:flex;flex-direction:column}
-.menu-item b{font-size:12px} .menu-item i{font-size:10px;color:var(--muted);font-style:normal;margin-top:2px}
-.menu-item.active{background:var(--card2);border-color:var(--lime);color:var(--lime)}
-.main{flex:1;padding:18px;overflow-y:auto}
-.top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
-.h1{font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.8px;flex:1;min-width:280px}
-.kpi{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px}
+/* FGWAPP V12.3 CLEAN - layout.css - Orden vertical Rutas */
+* { box-sizing: border-box; margin:0; padding:0; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height:1.5; }
+
+.navbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 24px; background: var(--card); border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:50;
+}
+.navbar-brand { font-weight:700; font-size:18px; }
+.navbar-version { font-size:11px; color: var(--muted); background:#f1f5f9; padding:4px 8px; border-radius:12px; }
+.navbar-nav { display:flex; gap:8px; }
+.nav-btn { padding:8px 16px; border:1px solid var(--border); background:var(--card); border-radius:var(--radius); cursor:pointer; font-size:13px; }
+.nav-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+.container { max-width:1400px; margin:0 auto; padding:24px; }
+
+.view { display:none; }
+.view.active { display:block; }
+
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:24px; }
+
+/* Rutas orden vertical especificado */
+.rutas-layout { display:flex; flex-direction:column; gap:20px; }
+.mapa-container { width:100%; height:500px; border-radius:var(--radius); overflow:hidden; border:1px solid var(--border); box-shadow:var(--shadow); }
+#mapa-rutas { width:100%; height:100%; }
+.rutas-middle { display:grid; grid-template-columns:1fr 340px; gap:20px; }
+.rutas-lista-container { background:var(--card); border:1px solid var(--border); border-radius:var(--radius); max-height:500px; overflow-y:auto; }
+.rutas-lista-header { padding:12px 16px; border-bottom:1px solid var(--border); font-weight:600; font-size:13px; }
+
+@media (max-width:900px) {
+  .rutas-middle { grid-template-columns:1fr; }
+  .mapa-container { height:400px; }
+}

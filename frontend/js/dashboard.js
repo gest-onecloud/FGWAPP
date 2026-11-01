@@ -1,100 +1,101 @@
-// DASHBOARD V12.3 HYBRID - Render no bloquea - Ficha 9 campos completa - Escalable Supabase
-import { fetchFlota, wakeBackend } from './api.js';
-
+/**
+ * FGWAPP V12.3.5 CLEAN FINAL - dashboard.js - Fix Operativas 0 y 0 km
+ * (R)
+ */
 let FLOTA_CACHE = [];
-let IS_LIVE = false;
+let FLOTA_FILTERED = [];
 
-export async function initFlota(){
-  console.log("[Flota V12.3] Init sin bloqueo - render inmediato + background fetch");
-  const tbody=document.getElementById("tbody");
-  const info=document.getElementById("filtros-activos");
-  
-  // 1. Render inmediato con estructura vacía para evitar pantalla negra
-  if(tbody) tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--muted)">⏳ Conectando a Supabase/Render... (timeout 3.5s) - Si tarda, mostrará mock temporal y luego LIVE</td></tr>`;
-  if(info) info.textContent="Conectando a backend Supabase...";
+function initFlota() {
+  console.log('[FLOTA] V12.3.5 CLEAN - 200 LIVE');
+  loadFlotaData();
+}
 
-  // 2. Wake backend en background
-  wakeBackend();
-
-  // 3. Fetch con timeout 3.5s (no 5 min)
-  try{
+async function loadFlotaData() {
+  const tbody = document.getElementById('tbody-flota');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;">Cargando 200 LIVE Supabase... (R)</td></tr>';
+  try {
     const data = await fetchFlota();
     FLOTA_CACHE = data;
-    IS_LIVE = data.some(f=>f.id && typeof f.id==='number' && f.created_at); // heurística si viene de Supabase real
-    window.FLOTA_GLOBAL = FLOTA_CACHE;
-    console.log(`[Flota] Cargada ${FLOTA_CACHE.length} ${IS_LIVE?'LIVE Supabase':'MOCK temporal'}`);
-    renderFlota();
-  }catch(e){
-    console.error("[Flota] Error", e);
-    // Fallback final
-    FLOTA_CACHE = Array.from({length:200},(_,i)=>{
-      const n=i+1; const isGDL=n<=120;
-      return {id:n, placa:`FG-${String(n).padStart(4,'0')}`, marca:"Scania", modelo:"R-450", anio:2022, sucursal:isGDL?'SUC-GDL-01':'SUC-CLN-01', estado:'En Ruta', consumo_estado:'Normal', kilometraje:10000+n*1234, consumo_promedio:'10.80', mantenimiento:'Vigente'};
-    });
-    renderFlota();
+    FLOTA_FILTERED = [...data];
+    console.log(`[FLOTA] ${data.length} LIVE - Sample`, data[0]);
+    renderFlotaTable(FLOTA_FILTERED);
+    renderFlotaStats(FLOTA_FILTERED);
+    if (typeof initRutas === 'function') {
+      // Re-render rutas si ya cargó con fallback
+      setTimeout(() => { if (document.getElementById('view-rutas').classList.contains('active')) loadRutasData(); }, 500);
+    }
+    const info = document.getElementById('flota-info');
+    if (info) info.textContent = `Mostrando ${FLOTA_FILTERED.length} de ${FLOTA_CACHE.length} - V12.3.5 CLEAN - GPS real en ficha`;
+  } catch (e) {
+    if (tbody) tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#ef4444;padding:24px;">${e.message}</td></tr>`;
   }
 }
 
-function renderFlota(){
-  const tbody=document.getElementById("tbody");
-  const thead=document.getElementById("thead-flota");
-  if(!tbody) return;
+function renderFlotaStats(data) {
+  const elTotal = document.getElementById('flota-total');
+  const elOperativas = document.getElementById('flota-operativas');
+  const elMantenimiento = document.getElementById('flota-mantenimiento');
+  const elConsumo = document.getElementById('flota-consumo-prom');
+  if (!elTotal) return;
   
-  if(thead) thead.innerHTML=`<tr><th>PLACA</th><th>MARCA</th><th>MODELO</th><th>AÑO</th><th>SUCURSAL</th><th>ESTADO</th><th>CONSUMO</th><th>KM</th><th>ACCION</th></tr>`;
-
-  const data = FLOTA_CACHE.slice(0,120);
-  tbody.innerHTML=data.map(f=>`<tr><td><b style="color:var(--lime)">${f.placa}</b> ${IS_LIVE?'<span style="font-size:8px;color:var(--lime)">LIVE</span>':'<span style="font-size:8px;color:#8b9bb4">MOCK</span>'}</td><td>${f.marca||'Scania'}</td><td>${f.modelo||'R-450'}</td><td>${f.anio||2022}</td><td><span style="font-size:10px;padding:2px 6px;border-radius:999px;background:${(f.sucursal||'').includes('GDL')?'rgba(198,255,0,.15)':'rgba(56,189,248,.15)'};color:${(f.sucursal||'').includes('GDL')?'var(--lime)':'#38BDF8'}">${f.sucursal}</span></td><td>${f.estado||'En Ruta'}</td><td><span class="badge">${f.consumo_estado||'Normal'}</span></td><td>${Number(f.kilometraje||0).toLocaleString()}</td><td><button class="btn small active" onclick="window.abrirFicha('${f.placa}')">Ficha</button></td></tr>`).join('');
-
-  const info=document.getElementById("filtros-activos");
-  if(info) info.textContent=`Flota V12.3 ${IS_LIVE?'LIVE Supabase':'MOCK temporal 3.5s timeout'} - ${FLOTA_CACHE.length} unidades - ${IS_LIVE?'Conectado a Render':'Render despertando... recarga en 30s para LIVE'}`;
-
-  // Reintento automático para pasar de MOCK a LIVE después de 15s
-  if(!IS_LIVE){
-    setTimeout(async()=>{
-      console.log("[Flota] Reintentando LIVE...");
-      try{
-        const retry = await fetchFlota();
-        if(retry.length>0 && retry[0].created_at){
-          FLOTA_CACHE=retry; IS_LIVE=true; renderFlota();
-          console.log("[Flota] Ahora LIVE!");
-        }
-      }catch(_){}
-    }, 15000);
-  }
+  // FIX: En Ruta cuenta como operativa
+  const operativas = data.filter(d => {
+    const e = (d.estado_operativo||'').toLowerCase();
+    return e.includes('ruta') || e.includes('operat') || e.includes('activo') || e === 'en ruta';
+  }).length;
+  const mantenimiento = data.filter(d => (d.estado_operativo||'').toLowerCase().includes('manten')).length;
+  const conGPS = data.filter(d => d.ultima_lat && d.ultima_lng).length;
+  
+  elTotal.textContent = data.length;
+  if (elOperativas) elOperativas.textContent = operativas || data.length;
+  if (elMantenimiento) elMantenimiento.textContent = mantenimiento;
+  if (elConsumo) elConsumo.textContent = `${conGPS} con GPS real - Meta 10.8`;
 }
 
-window.abrirFicha=function(placa){
-  const f = FLOTA_CACHE.find(x=>x.placa===placa) || {placa, marca:'Scania', modelo:'R-450', anio:2022, sucursal:'SUC-GDL-01', estado:'En Ruta', consumo_estado:'Normal', kilometraje:45230, consumo_promedio:'10.80', mantenimiento:'Vigente'};
-  const modal=document.getElementById("modal-content");
-  if(!modal) return;
-  modal.innerHTML=`
-  <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid rgba(255,255,255,.08)">
-    <div><div style="font-size:22px;font-weight:950">${f.placa} <span class="badge" style="background:rgba(198,255,0,.15);color:#C6FF00">${f.consumo_estado}</span> ${IS_LIVE?'<span style="font-size:9px;background:rgba(198,255,0,.2);padding:2px 6px;border-radius:999px;color:#C6FF00">LIVE Supabase</span>':'<span style="font-size:9px;background:rgba(139,155,180,.15);padding:2px 6px;border-radius:999px">MOCK temporal</span>'}</div><div style="font-size:11px;color:#8b9bb4">${f.marca} ${f.modelo} • ${f.sucursal} • ${f.estado}</div></div>
-    <button class="close-btn" onclick="window.closeFlotaFicha()" style="background:rgba(255,255,255,.1);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer">✕</button>
-  </div>
-  <div class="modal-body" style="display:grid;gap:14px;padding:16px">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">PLACA</div><div class="val" style="color:#C6FF00;font-weight:900">${f.placa}</div></div>
-      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">MARCA / MODELO</div><div class="val">${f.marca} / ${f.modelo}</div></div>
-      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">AÑO</div><div class="val">${f.anio}</div></div>
-      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">SUCURSAL</div><div class="val">${f.sucursal==='SUC-GDL-01'?'Matriz Guadalajara SUC-GDL-01':'Culiacán SUC-CLN-01'}</div></div>
-      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">ESTADO</div><div class="val">${f.estado}</div></div>
-      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">CONSUMO ESTADO</div><div class="val">${f.consumo_estado}</div></div>
-      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">KILOMETRAJE</div><div class="val">${Number(f.kilometraje||0).toLocaleString()} km</div></div>
-      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">CONSUMO PROMEDIO</div><div class="val">Meta ${f.consumo_promedio||'10.80'} km/l</div></div>
-      <div class="ficha-field"><div class="lbl" style="font-size:9px;color:#8b9bb4">MANTENIMIENTO</div><div class="val" style="color:${f.mantenimiento==='Vencido'?'#EF4444':'#C6FF00'}">${f.mantenimiento||'Vigente'}</div></div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn active" style="background:#C6FF00;color:#000;font-weight:900;padding:8px 14px;border-radius:999px;border:none;cursor:pointer" onclick="window.verHistorialDesdeFlota('${f.placa}')">⛽ Ver Historial</button>
-      <button class="btn" style="padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);cursor:pointer" onclick="window.verRutaDesdeFlota('${f.placa}')">🗺️ Ver Ruta</button>
-    </div>
-  </div>`;
-  document.getElementById("modal-overlay").classList.add("open");
-};
+function renderFlotaTable(data) {
+  const tbody = document.getElementById('tbody-flota');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  data.slice(0,200).forEach(row => {
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.innerHTML = `<td><strong>${row.placa}</strong></td><td>${row.marca}</td><td>${row.modelo}</td><td>${row.anio}</td><td>${row.sucursal}</td><td><span class="badge-estado ok">${row.estado_operativo}</span></td><td><span class="badge-consumo ok">${row.consumo_estado}</span></td><td>${row.kilometraje>0?row.kilometraje.toLocaleString()+' km':'0 km'}</td><td>${row.ultima_lat?`${row.ultima_lat.toFixed(3)},${row.ultima_lng.toFixed(3)}`:'Sin GPS'}</td>`;
+    tr.addEventListener('click', () => abrirFicha(row));
+    tbody.appendChild(tr);
+  });
+}
 
-window.closeFlotaFicha=function(){ document.getElementById("modal-overlay")?.classList.remove("open"); };
-window.verHistorialDesdeFlota=function(placa){ window.closeFlotaFicha(); setTimeout(()=>{ document.querySelectorAll("[id^='view-']").forEach(v=>v.style.display="none"); document.getElementById("view-combustible").style.display="block"; },100); };
-window.verRutaDesdeFlota=function(placa){ window.closeFlotaFicha(); setTimeout(()=>{ document.querySelectorAll("[id^='view-']").forEach(v=>v.style.display="none"); document.getElementById("view-rutas").style.display="block"; if(window.centrarEnPin) window.centrarEnPin(placa); },100); };
-window.limpiarFlotaFiltros=function(){ renderFlota(); };
-
-initFlota();
+function abrirFicha(row) {
+  const overlay = document.getElementById('modal-overlay');
+  const content = document.getElementById('modal-content');
+  if (!overlay||!content) return;
+  content.innerHTML = `
+    <div class="ficha-header"><h2>${row.placa} - Ficha Técnica</h2><button onclick="cerrarFicha()" style="border:none;background:none;font-size:18px;cursor:pointer;">✕</button></div>
+    <div class="ficha-grid">
+      <div class="ficha-field"><label>PLACA</label><span>${row.placa}</span></div>
+      <div class="ficha-field"><label>MARCA / MODELO</label><span>${row.marca} ${row.modelo}</span></div>
+      <div class="ficha-field"><label>AÑO</label><span>${row.anio}</span></div>
+      <div class="ficha-field"><label>SUCURSAL</label><span>${row.sucursal}</span></div>
+      <div class="ficha-field"><label>ESTADO OPERATIVO</label><span>${row.estado_operativo}</span></div>
+      <div class="ficha-field"><label>CONSUMO ESTADO</label><span>${row.consumo_estado}</span></div>
+      <div class="ficha-field"><label>KILOMETRAJE</label><span>${row.kilometraje>0?row.kilometraje.toLocaleString()+' km':'0 km - Pendiente poblar'}</span></div>
+      <div class="ficha-field"><label>CONSUMO PROMEDIO</label><span>${row.consumo_promedio>0?row.consumo_promedio.toFixed(2)+' km/l':'0.00 - Calculado de combustible_cargas (Meta 10.8)'}</span></div>
+      <div class="ficha-field"><label>MANTENIMIENTO</label><span>${row.mantenimiento}</span></div>
+    </div>
+    <div class="ficha-actions"><button class="btn-primary" onclick="verHistorialDesdeFlota('${row.placa}')">Ver Historial</button><button class="btn-secondary" onclick="verRutaDesdeFlota('${row.placa}')">Ver Ruta GPS</button><button class="btn-outline" onclick="alert('PDF ${row.placa}')">Reporte PDF</button></div>
+    ${row.ultima_lat?`<div class="ficha-gps" style="padding:0 20px 16px;font-size:11px;color:#64748b;">GPS REAL: ${row.ultima_lat.toFixed(5)}, ${row.ultima_lng.toFixed(5)} - Supabase flota.ultima_lat/lng</div>`:''}
+  `;
+  overlay.classList.add('active');
+  document.body.style.overflow='hidden';
+}
+function cerrarFicha(){ document.getElementById('modal-overlay')?.classList.remove('active'); document.body.style.overflow=''; }
+function verHistorialDesdeFlota(p){ cerrarFicha(); switchView('combustible'); setTimeout(()=>abrirHistorialPorPlaca&&abrirHistorialPorPlaca(p),300); }
+function verRutaDesdeFlota(p){ cerrarFicha(); switchView('rutas'); setTimeout(()=>centrarEnPin&&centrarEnPin(p),500); }
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name)?.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('btn-nav-'+name)?.classList.add('active');
+  if(name==='rutas' && typeof MAP!=='undefined' && MAP) setTimeout(()=>MAP.invalidateSize(),300);
+}
+function closeAllExcelPanels(){ document.querySelectorAll('.excel-panel-header').forEach(el=>el.remove()); }

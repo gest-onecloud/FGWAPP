@@ -1,132 +1,295 @@
-// RUTAS V12.1 FIX - Sin API KEY - OSM + Carto Light libre + Ficha completa
-let MAP=null; let MARKERS=[]; let FLOTA_RUTAS=[];
-const GDL={lat:20.6597,lng:-103.3496}; const CLN={lat:24.8093,lng:-107.3940};
+/**
+ * FGWAPP Fleet Management SPA - V12.3 CLEAN
+ * rutas.js - GPS real Supabase ultima_lat/lng, Leaflet OSM sin API KEY
+ * Sin Math.random, sin mocks - Pins reales
+ * Orden vertical: mapa arriba 500px, derecha Rutas Registradas, abajo tabla Vehiculos en Ruta
+ * (R)
+ */
 
-export async function initRutas(){
-  const div=document.getElementById("mapa-rutas");
-  if(!div) return;
-  if(!window.L){ console.error("Leaflet no cargado"); div.innerHTML="<div style='padding:20px'>Cargando Leaflet... recarga Ctrl+F5</div>"; return; }
+let MAP = null;
+let MARKERS = {};
+let GPS_CACHE = [];
+let RUTAS_CACHE = [];
 
-  if(MAP){
-    try{ MAP.invalidateSize(); return; }catch(e){ MAP=null; div.innerHTML=""; }
+function initRutas() {
+  console.log('[RUTAS] initRutas V12.3 CLEAN - OSM sin API KEY');
+  initMap();
+  loadRutasData();
+}
+
+function initMap() {
+  const mapEl = document.getElementById('mapa-rutas');
+  if (!mapEl) {
+    console.warn('[RUTAS] mapa-rutas no encontrado');
+    return;
   }
-
-  // Generar flota mock robusta
-  FLOTA_RUTAS=[];
-  for(let i=1;i<=200;i++){
-    const isGDL=i<=120; const base=isGDL?GDL:CLN;
-    FLOTA_RUTAS.push({
-      id:i, placa:`FG-${String(i).padStart(4,'0')}`, suc:isGDL?'SUC-GDL-01':'SUC-CLN-01',
-      estado:i<=114?'En Ruta':i<=171?'En Base':i<=185?'En Taller':'Disponible',
-      consumo:i<=28?'Bajo':i<=170?'Normal':i<=189?'Excedido':i<=190?'Sospechoso':'Critico',
-      marca:["Scania","Volvo","Freightliner"][i%3], modelo:["R-450","VNL","Cascadia"][i%3],
-      anio:2019+(i%5), kilometraje:10000+i*1234, consumo_promedio:(8+Math.random()*5).toFixed(2), mantenimiento:i<=65?'Vencido':'Vigente',
-      lat: base.lat + (Math.random()-0.5)*1.5, lng: base.lng + (Math.random()-0.5)*1.5
-    });
+  
+  if (MAP) {
+    MAP.invalidateSize();
+    return;
   }
-  window.FLOTA_RUTAS_GLOBAL=FLOTA_RUTAS;
+  
+  // Leaflet OSM libre - SIN API KEY
+  MAP = L.map('mapa-rutas').setView([20.6597, -103.3496], 11); // GDL centro
+  
+  L.tileLayer(CONFIG.MAP_TILES, {
+    attribution: CONFIG.MAP_ATTRIBUTION,
+    maxZoom: 18
+  }).addTo(MAP);
+  
+  console.log('[RUTAS] Mapa OSM iniciado - CartoDB voyager REMOVIDO por API KEY REQUIRED');
+}
 
-  try{
-    MAP=L.map(div, {zoomControl:true}).setView([22.5,-105.5],5.2);
-
-    // Tile libre sin API KEY - Carto Light que si funciona + OSM fallback
-    // Probamos primero Voyager sin key, si falla usa OSM
-    const lightTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution:'© OpenStreetMap © CartoDB',
-      subdomains:'abcd',
-      maxZoom:19
-    });
-    lightTiles.addTo(MAP);
+async function loadRutasData() {
+  const tbody = document.getElementById('tbody-rutas');
+  const lista = document.getElementById('rutas-lista');
+  const kpis = document.getElementById('rutas-kpis');
+  
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;">Despertando Render, espera 1 min... Cargando GPS LIVE (R)</td></tr>';
+  
+  try {
+    const [gpsData, flotaData, rutasData] = await Promise.all([
+      fetchGPS().catch(() => []),
+      fetchFlota().catch(() => []),
+      fetchRutas().catch(() => [])
+    ]);
     
-    // Si Voyager falla (requiere key), usa OSM directo
-    lightTiles.on('tileerror', function(){
-      console.log("Voyager falló, usando OSM");
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-        attribution:'© OpenStreetMap',
-        maxZoom:19
-      }).addTo(MAP);
+    GPS_CACHE = gpsData;
+    RUTAS_CACHE = rutasData;
+    
+    // Merge flota con gps - ultima_lat/lng real de Supabase
+    const flotaConGPS = flotaData.map(f => {
+      const gps = gpsData.find(g => g.placa === f.placa || g.placa === f.placa?.toUpperCase());
+      return {
+        ...f,
+        ultima_lat: gps?.ultima_lat || gps?.lat || f.ultima_lat || null,
+        ultima_lng: gps?.ultima_lng || gps?.lng || gps?.longitud || f.ultima_lng || null,
+        ultima_actualizacion: gps?.ultima_actualizacion || gps?.fecha || gps?.timestamp || f.ultima_actualizacion
+      };
     });
-
-    // Pins
-    FLOTA_RUTAS.forEach(f=>{
-      const color=f.suc==='SUC-GDL-01'?'#C6FF00':'#38BDF8';
-      const icon=L.divIcon({
-        html:`<div style="width:14px;height:14px;background:${color};border:2px solid #000;border-radius:50%;box-shadow:0 0 8px ${color}"></div>`,
-        className:'', iconSize:[14,14], iconAnchor:[7,7]
-      });
-      const m=L.marker([f.lat,f.lng],{icon}).addTo(MAP);
-      m.bindPopup(`<div style="font-size:11px"><b style="color:#C6FF00">${f.placa}</b> • ${f.suc}<br>${f.marca} ${f.modelo} • ${f.estado}</div>`);
-      m._placa=f.placa;
-      MARKERS.push(m);
-      m.on('click', ()=>{ abrirFichaDesdeMapa(f); });
-    });
-
-    // Centros
-    L.marker([GDL.lat,GDL.lng],{icon:L.divIcon({html:'<div style="background:rgba(198,255,0,.25);border:2px solid #C6FF00;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#C6FF00">GDL</div>',className:'',iconSize:[34,34]})}).addTo(MAP).bindPopup("Matriz Guadalajara 120 unidades");
-    L.marker([CLN.lat,CLN.lng],{icon:L.divIcon({html:'<div style="background:rgba(56,189,248,.25);border:2px solid #38BDF8;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#38BDF8">CLN</div>',className:'',iconSize:[34,34]})}).addTo(MAP).bindPopup("Culiacán 80 unidades");
-
-    setTimeout(()=>{ MAP.invalidateSize(); },400);
-
-    // KPIs
-    const kpis=document.getElementById("rutas-kpis");
-    if(kpis){ kpis.innerHTML=`<div class="rutas-kpi"><div class="rutas-kpi-item"><div class="k">GDL</div><div class="v" style="color:var(--lime)">120</div></div><div class="rutas-kpi-item"><div class="k">CLN</div><div class="v" style="color:#38BDF8">80</div></div><div class="rutas-kpi-item"><div class="k">En Ruta</div><div class="v" style="color:var(--lime)">114</div></div><div class="rutas-kpi-item"><div class="k">En Base</div><div class="v">57</div></div></div>`; }
-
-    // Lista + tabla inferior futura
-    const lista=document.getElementById("rutas-lista");
-    if(lista){ lista.innerHTML=FLOTA_RUTAS.slice(0,60).map(f=>`<div class="rutas-item" data-placa="${f.placa}" onclick="window.centrarEnPin('${f.placa}')"><div><b style="color:var(--lime)">${f.placa}</b> <span style="color:var(--muted)">${f.suc}</span><br><span style="font-size:10px">${f.marca} ${f.modelo} • ${f.estado}</span></div><div><span class="custom-pin ${f.suc==='SUC-GDL-01'?'pin-gdl':'pin-cln'}"></span></div></div>`).join("") + `<div style="font-size:10px;color:var(--muted);margin-top:8px">60 de 200 • Click = centrar • Próximo: tabla Vehículos en Ruta debajo del mapa</div>`; }
-
-    console.log("[Rutas V12.1] Mapa sin API KEY OK 200 pins");
-
-  }catch(err){
-    console.error(err);
-    div.innerHTML=`<div style="padding:20px;color:#ff6b6b">Error mapa: ${err.message} - Ctrl+F5</div>`;
+    
+    const conGPS = flotaConGPS.filter(f => f.ultima_lat && f.ultima_lng);
+    const sinGPS = flotaConGPS.filter(f => !f.ultima_lat || !f.ultima_lng);
+    
+    console.log(`[RUTAS] ${conGPS.length} con GPS real, ${sinGPS.length} sin GPS - TOTAL ${flotaConGPS.length} LIVE`);
+    
+    renderMapMarkers(conGPS);
+    renderRutasKPIs(conGPS, sinGPS, rutasData);
+    renderRutasLista(rutasData, conGPS);
+    renderRutasTable(conGPS);
+    
+  } catch (error) {
+    console.error('[RUTAS] Error:', error);
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#ef4444;padding:40px;">${error.message}<br><small>GPS real Supabase, no random</small></td></tr>`;
   }
 }
 
-function abrirFichaDesdeMapa(f){
-  const modal=document.getElementById("modal-content");
-  if(!modal) return;
-  modal.innerHTML=`
-  <div class="modal-header">
-    <div><div style="font-size:22px;font-weight:950">${f.placa} <span class="badge ${getBadge(f.consumo)}">${f.consumo}</span></div>
-    <div style="font-size:11px;color:var(--muted)">${f.marca} ${f.modelo} • ${f.anio} • ${f.suc} • ${f.estado} • GPS ${f.lat.toFixed(4)},${f.lng.toFixed(4)}</div></div>
-    <button class="close-btn" onclick="window.closeFlotaFicha()">✕</button>
-  </div>
-  <div class="modal-body" style="display:grid;gap:14px">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="ficha-field"><div class="lbl">PLACA</div><div class="val" style="color:var(--lime)">${f.placa}</div></div>
-      <div class="ficha-field"><div class="lbl">MARCA / MODELO</div><div class="val">${f.marca} / ${f.modelo}</div></div>
-      <div class="ficha-field"><div class="lbl">AÑO</div><div class="val">${f.anio}</div></div>
-      <div class="ficha-field"><div class="lbl">SUCURSAL</div><div class="val">${f.suc}</div></div>
-      <div class="ficha-field"><div class="lbl">ESTADO</div><div class="val">${f.estado}</div></div>
-      <div class="ficha-field"><div class="lbl">CONSUMO ESTADO</div><div class="val">${f.consumo}</div></div>
-      <div class="ficha-field"><div class="lbl">KILOMETRAJE</div><div class="val">${f.kilometraje.toLocaleString()} km</div></div>
-      <div class="ficha-field"><div class="lbl">CONSUMO PROMEDIO</div><div class="val">${f.consumo_promedio} km/l</div></div>
-      <div class="ficha-field"><div class="lbl">MANTENIMIENTO</div><div class="val" style="color:${f.mantenimiento==='Vencido'?'var(--red)':'var(--lime)'}">${f.mantenimiento}</div></div>
-      <div class="ficha-field"><div class="lbl">GPS LAT/LNG</div><div class="val">${f.lat.toFixed(5)}, ${f.lng.toFixed(5)}</div></div>
-      <div class="ficha-field"><div class="lbl">TELCEL SIM</div><div class="val">LIVE • Señal OK</div></div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn active" style="background:var(--lime);color:#000;font-weight:900" onclick="window.verHistorialDesdeMapa('${f.placa}')">⛽ Ver Historial Recargas</button>
-      <button class="btn" onclick="window.closeFlotaFicha()">Cerrar</button>
-    </div>
-  </div>`;
-  document.getElementById("modal-overlay").classList.add("open");
+function renderMapMarkers(data) {
+  if (!MAP) return;
+  
+  // Limpiar markers previos
+  Object.values(MARKERS).forEach(m => MAP.removeLayer(m));
+  MARKERS = {};
+  
+  if (data.length === 0) {
+    console.warn('[RUTAS] Sin pins reales para mostrar');
+    return;
+  }
+  
+  const group = [];
+  
+  data.forEach(row => {
+    const lat = Number(row.ultima_lat);
+    const lng = Number(row.ultima_lng);
+    
+    if (isNaN(lat) || isNaN(lng)) return;
+    
+    const marker = L.marker([lat, lng], {
+      title: row.placa
+    }).addTo(MAP);
+    
+    marker.bindPopup(`
+      <div style="min-width:180px;">
+        <strong>${row.placa}</strong><br>
+        ${row.marca} ${row.modelo}<br>
+        <small>${row.sucursal} - ${row.estado_operativo}</small><br>
+        <small>Km: ${row.kilometraje?.toLocaleString() || '-'} - ${row.consumo_promedio?.toFixed(2) || '-'} km/l</small><br>
+        <div style="margin-top:6px;display:flex;gap:4px;">
+          <button onclick="verHistorialDesdeMapa('${row.placa}')" style="padding:4px 8px;background:#0f172a;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;">Historial</button>
+          <button onclick="abrirFichaDesdeMapa('${row.placa}')" style="padding:4px 8px;background:#fff;border:1px solid #e2e8f0;border-radius:4px;cursor:pointer;font-size:11px;">Ficha</button>
+        </div>
+      </div>
+    `);
+    
+    MARKERS[row.placa] = marker;
+    group.push([lat, lng]);
+  });
+  
+  if (group.length > 0) {
+    MAP.fitBounds(group, { padding: [40, 40], maxZoom: 14 });
+  }
 }
-function getBadge(c){ c=(c||'').toLowerCase(); if(c==='bajo'||c==='eficiente') return 'eficiente'; if(c==='normal'||c==='optimo') return 'normal'; return 'atencion'; }
 
-window.centrarEnPin=function(placa){
-  if(!MAP) return;
-  const mk=MARKERS.find(m=>m._placa===placa);
-  if(mk){ MAP.setView(mk.getLatLng(),11); mk.openPopup(); }
-  document.querySelectorAll(".rutas-item").forEach(it=>{ it.classList.toggle("active", it.getAttribute("data-placa")===placa); });
-};
+function renderRutasKPIs(conGPS, sinGPS, rutas) {
+  const kpis = document.getElementById('rutas-kpis');
+  if (!kpis) return;
+  
+  kpis.innerHTML = `
+    <div class="stat-card"><label>En Ruta GPS</label><span>${conGPS.length}</span></div>
+    <div class="stat-card"><label>Sin GPS</label><span>${sinGPS.length}</span></div>
+    <div class="stat-card"><label>Rutas Registradas</label><span>${rutas.length || conGPS.length}</span></div>
+    <div class="stat-card"><label>Total Flota</label><span>${conGPS.length + sinGPS.length}</span></div>
+  `;
+}
 
-window.verHistorialDesdeMapa=function(placa){
-  window.closeFlotaFicha();
-  setTimeout(()=>{
-    document.querySelectorAll("[id^='view-']").forEach(v=>v.style.display="none");
-    document.getElementById("view-combustible").style.display="block";
-    setTimeout(()=>{ if(window.abrirHistorialPorPlaca) window.abrirHistorialPorPlaca(placa); },600);
-  },100);
-};
+function renderRutasLista(rutas, conGPS) {
+  const lista = document.getElementById('rutas-lista');
+  if (!lista) return;
+  
+  const data = rutas.length > 0 ? rutas : conGPS.slice(0, 20).map(r => ({
+    id: r.placa,
+    placa: r.placa,
+    origen: r.sucursal,
+    destino: 'En Ruta',
+    estado: r.estado_operativo,
+    ultima_lat: r.ultima_lat,
+    ultima_lng: r.ultima_lng
+  }));
+  
+  if (data.length === 0) {
+    lista.innerHTML = '<div style="padding:20px;text-align:center;color:#64748b;">No hay rutas con GPS real - Verifique Supabase gps_tracking</div>';
+    return;
+  }
+  
+  lista.innerHTML = data.map(r => `
+    <div class="ruta-item" onclick="centrarEnPin('${r.placa}')" style="cursor:pointer;padding:10px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <strong>${r.placa || r.id}</strong> - <small>${r.origen || ''} → ${r.destino || 'En Ruta'}</small><br>
+        <small style="color:#64748b;">${r.estado || ''} ${r.ultima_lat ? `📍 ${Number(r.ultima_lat).toFixed(4)}, ${Number(r.ultima_lng).toFixed(4)}` : ''}</small>
+      </div>
+      <span style="font-size:16px;">📍</span>
+    </div>
+  `).join('');
+}
+
+function renderRutasTable(data) {
+  const tbody = document.getElementById('tbody-rutas');
+  if (!tbody) return;
+  
+  tbody.innerHTML = '';
+  
+  data.slice(0, 200).forEach(row => {
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.innerHTML = `
+      <td><strong>${row.placa}</strong></td>
+      <td>${row.marca} ${row.modelo}</td>
+      <td>${row.sucursal}</td>
+      <td>${row.estado_operativo}</td>
+      <td>${row.ultima_lat ? `${Number(row.ultima_lat).toFixed(5)}, ${Number(row.ultima_lng).toFixed(5)}` : 'Sin GPS'}</td>
+      <td>${row.kilometraje?.toLocaleString() || '-'} km</td>
+      <td><button onclick="centrarEnPin('${row.placa}')" style="padding:4px 8px;background:#0f172a;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;">Ver en Mapa</button></td>
+    `;
+    tr.addEventListener('click', (e) => {
+      if (e.target.tagName !== 'BUTTON') centrarEnPin(row.placa);
+    });
+    tbody.appendChild(tr);
+  });
+  
+  // Build filtros Excel rutas
+  buildRutasFilterPanels(data);
+}
+
+function buildRutasFilterPanels(data) {
+  const thead = document.getElementById('thead-rutas');
+  if (!thead) return;
+  
+  const campos = [
+    { key: 'placa', label: 'PLACA' },
+    { key: 'marca', label: 'MARCA' },
+    { key: 'sucursal', label: 'SUCURSAL' },
+    { key: 'estado_operativo', label: 'ESTADO' }
+  ];
+  
+  document.querySelectorAll('.excel-panel-header.rutas-panel').forEach(el => el.remove());
+  
+  const tr = thead.querySelector('tr');
+  if (!tr) return;
+  const ths = tr.querySelectorAll('th');
+  
+  campos.forEach((campo, idx) => {
+    if (!ths[idx]) return;
+    const th = ths[idx];
+    th.style.cursor = 'pointer';
+    th.innerHTML = `${campo.label} <span style="font-size:10px;">▼</span>`;
+    th.onclick = (e) => {
+      e.stopPropagation();
+      toggleRutasExcelPanel(campo, data, th);
+    };
+  });
+}
+
+function toggleRutasExcelPanel(campo, data, anchorTh) {
+  closeAllExcelPanels();
+  
+  const valores = [...new Set(data.map(d => d[campo.key]).filter(Boolean))].sort();
+  const panel = document.createElement('div');
+  panel.className = 'excel-panel-header rutas-panel';
+  panel.style.cssText = 'position:absolute;min-width:220px;max-height:340px;overflow-y:auto;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.15);z-index:100;padding:8px;';
+  
+  const rect = anchorTh.getBoundingClientRect();
+  panel.style.top = `${rect.bottom + window.scrollY + 4}px`;
+  panel.style.left = `${rect.left + window.scrollX}px`;
+  
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 8px;border-bottom:1px solid #e2e8f0;">
+      <strong style="font-size:12px;">${campo.label}</strong>
+      <button onclick="closeAllExcelPanels()" style="border:none;background:none;cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:4px;">
+      ${valores.map(v => `<label style="display:flex;gap:6px;font-size:12px;padding:3px 0;"><input type="checkbox" value="${v}" checked class="rutas-filter-cb"> ${v}</label>`).join('')}
+    </div>
+  `;
+  
+  document.body.appendChild(panel);
+}
+
+// ACCIONES MAPA
+function centrarEnPin(placa) {
+  const marker = MARKERS[placa];
+  if (marker && MAP) {
+    MAP.setView(marker.getLatLng(), 15);
+    marker.openPopup();
+    console.log(`[RUTAS] Centrado en ${placa} - GPS real`);
+  } else {
+    console.warn(`[RUTAS] Pin ${placa} no encontrado - Sin GPS real`);
+    // Intentar buscar en cache
+    const row = GPS_CACHE.find(g => g.placa === placa) || {};
+    if (row.ultima_lat && MAP) {
+      MAP.setView([Number(row.ultima_lat), Number(row.ultima_lng)], 15);
+    }
+  }
+}
+
+function verHistorialDesdeMapa(placa) {
+  switchView('combustible');
+  setTimeout(() => {
+    if (typeof abrirHistorialPorPlaca === 'function') {
+      abrirHistorialPorPlaca(placa);
+    }
+  }, 300);
+}
+
+function abrirFichaDesdeMapa(placa) {
+  const row = (typeof FLOTA_CACHE !== 'undefined' ? FLOTA_CACHE : []).find(r => r.placa === placa);
+  if (row && typeof abrirFicha === 'function') {
+    abrirFicha(row);
+  } else {
+    // Fallback buscar en GPS cache
+    const gpsRow = GPS_CACHE.find(g => g.placa === placa);
+    if (gpsRow) {
+      alert(`Ficha ${placa}\nGPS: ${gpsRow.ultima_lat}, ${gpsRow.ultima_lng}\nDatos completos en vista Flota`);
+      switchView('flota');
+    }
+  }
+}
