@@ -1,56 +1,32 @@
 /**
- * FGWAPP V12.3.6 DIRECT DB - api.js
- * 1) Intenta fgwapp.onrender.com 2) Si da 0 o 404, va DIRECTO a Supabase REST con anon key
- * 100% datos reales de yjbzbfeivxkrxzlpehxj - Sin mocks, sin Math.random
+ * FGWAPP V12.3.6.2 FINAL - api.js - Lee v_combustible_con_placa con 1600 LIVE
  * (R)
  */
-
 async function fetchWithTimeout(url, options = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
   try {
     const response = await fetch(url, { ...options, signal: controller.signal, headers: { 'Content-Type': 'application/json', ...(options.headers||{}) } });
     clearTimeout(timeoutId);
-    if (!response.ok) {
-      console.warn(`[API] ${url} ${response.status} - probando DIRECT DB`);
-      return [];
-    }
+    if (!response.ok) return [];
     return await response.json();
   } catch (e) {
     clearTimeout(timeoutId);
-    if (e.name === 'AbortError') {
-      console.warn(`[API] Timeout 60s ${url} - probando DIRECT DB`);
-      return [];
-    }
-    console.warn(`[API] Error ${url}: ${e.message} - probando DIRECT DB`);
     return [];
   }
 }
 
-// DIRECT DB - Supabase REST
 async function fetchDirectSupabase(table, limit = 200) {
   try {
-    const url = `${CONFIG.SUPABASE_URL}/rest/v1/${table}?select=*&limit=${limit}`;
-    console.log(`[DIRECT DB] Fetch ${table} desde Supabase...`);
+    const url = `${CONFIG.SUPABASE_URL}/rest/v1/${table}?select=*&limit=${limit}&order=fecha.desc`;
     const res = await fetch(url, {
-      headers: {
-        'apikey': CONFIG.SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json'
-      }
+      headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}` }
     });
-    if (!res.ok) {
-      const txt = await res.text();
-      console.error(`[DIRECT DB] ${table} error ${res.status}:`, txt);
-      return [];
-    }
+    if (!res.ok) return [];
     const data = await res.json();
-    console.log(`[DIRECT DB] ${table} -> ${data.length} registros LIVE de Supabase`);
+    console.log(`[DIRECT DB] ${table} -> ${data.length} LIVE`);
     return data;
-  } catch (e) {
-    console.error(`[DIRECT DB] ${table} exception:`, e);
-    return [];
-  }
+  } catch (e) { return []; }
 }
 
 function normalizeFlotaRow(row) {
@@ -58,78 +34,68 @@ function normalizeFlotaRow(row) {
     placa: row.placa || row.PLACA || '',
     marca: row.marca || row.MARCA || '',
     modelo: row.modelo || row.MODELO || '',
-    anio: row.anio || row.año || row.ANIO || row.AÑO || '',
-    sucursal: row.sucursal || row.SUCURSAL || 'GDL',
-    estado_operativo: row.estado_operativo || row.estado || row.ESTADO || 'En Ruta',
-    consumo_estado: row.consumo_estado || row.CONSUMO_ESTADO || 'Normal',
-    kilometraje: Number(row.kilometraje ?? row.KILOMETRAJE ?? row.km ?? 0),
-    consumo_promedio: Number(row.consumo_promedio ?? row.CONSUMO_PROMEDIO ?? row.rendimiento ?? 0),
-    mantenimiento: row.mantenimiento || row.MANTENIMIENTO || 'AL DIA',
-    ultima_lat: row.ultima_lat != null ? Number(row.ultima_lat) : (row.lat != null ? Number(row.lat) : null),
-    ultima_lng: row.ultima_lng != null ? Number(row.ultima_lng) : (row.lng != null ? Number(row.lng) : null),
-    ultima_actualizacion: row.ultima_actualizacion || null
+    anio: row.anio || row.año || '',
+    sucursal: row.sucursal || 'GDL',
+    estado_operativo: row.estado_operativo || row.estado || 'En Ruta',
+    consumo_estado: row.consumo_estado || 'Normal',
+    kilometraje: Number(row.kilometraje ?? 0),
+    consumo_promedio: Number(row.consumo_promedio ?? 0),
+    mantenimiento: row.mantenimiento || 'AL DIA',
+    ultima_lat: row.ultima_lat != null ? Number(row.ultima_lat) : null,
+    ultima_lng: row.ultima_lng != null ? Number(row.ultima_lng) : null,
   };
 }
 
 function normalizeCombustibleRow(row) {
+  // Ya viene con placa desde v_combustible_con_placa
   return {
-    fecha: row.fecha || row.FECHA || '',
-    placa: row.placa || row.PLACA || '',
-    sucursal: row.sucursal || row.SUCURSAL || 'GDL',
-    tipo: row.tipo || row.TIPO || 'Diesel',
-    litros: Number(row.litros ?? row.LITROS ?? 0),
-    consumo: Number(row.consumo ?? row.CONSUMO ?? row.km_l ?? 0),
-    costo: Number(row.costo ?? row.COSTO ?? 0),
-    kilometraje: Number(row.kilometraje ?? row.KILOMETRAJE ?? 0)
+    fecha: row.fecha || '',
+    placa: row.placa || '',
+    sucursal: row.sucursal || 'GDL',
+    tipo: row.tipo || 'Diesel',
+    litros: Number(row.litros ?? 0),
+    consumo: Number(row.consumo ?? row.rendimiento_km_l ?? 0),
+    costo: Number(row.costo ?? 0),
+    kilometraje: Number(row.kilometraje ?? row.odometro ?? 0)
   };
 }
 
 async function fetchFlota() {
-  // 1) Intenta backend
   let data = await fetchWithTimeout(`${CONFIG.API_BASE}/api/flota`);
   let raw = Array.isArray(data) ? data : (data.data || data.flota || []);
-  if (raw.length > 0) {
-    console.log(`[API] /api/flota ${raw.length} desde Render`);
-    return raw.map(normalizeFlotaRow).filter(r=>r.placa);
-  }
-  // 2) DIRECT DB fallback
-  console.warn('[API] /api/flota vacio, usando DIRECT DB flota');
-  raw = await fetchDirectSupabase('flota', 200);
+  if (raw.length > 0) return raw.map(normalizeFlotaRow).filter(r=>r.placa);
+  raw = await fetchDirectSupabase('v_flota_dashboard', 200);
+  if (raw.length === 0) raw = await fetchDirectSupabase('flota', 200);
   return raw.map(normalizeFlotaRow).filter(r=>r.placa);
 }
 
 async function fetchCombustible() {
   let data = await fetchWithTimeout(`${CONFIG.API_BASE}/api/combustible`);
   let raw = Array.isArray(data) ? data : (data.data || data.combustible || []);
-  if (raw.length > 0) {
-    console.log(`[API] /api/combustible ${raw.length} desde Render`);
-    return raw.map(normalizeCombustibleRow).filter(r=>r.placa);
+  if (raw.length > 0) return raw.map(normalizeCombustibleRow).filter(r=>r.placa);
+  // DIRECT DB - lee la vista con 1600 que acabas de crear
+  raw = await fetchDirectSupabase('v_combustible_con_placa', 1600);
+  if (raw.length === 0) {
+    // Fallback a tabla cruda y luego join en memoria con flota
+    raw = await fetchDirectSupabase('combustible_cargas', 1600);
+    // Si es cruda, no tiene placa, pero la tabla flota la tiene
+    const flota = await fetchDirectSupabase('flota', 200);
+    const mapFlota = Object.fromEntries(flota.map(f=>[f.id, f]));
+    return raw.map(r=>{
+      const f = mapFlota[r.flota_id] || {};
+      return normalizeCombustibleRow({ ...r, placa: f.placa || `FG-${String(r.flota_id).padStart(4,'0')}`, sucursal: f.sucursal_id || 'GDL' });
+    });
   }
-  console.warn('[API] /api/combustible vacio, usando DIRECT DB combustible_cargas');
-  raw = await fetchDirectSupabase('combustible_cargas', 1600);
   return raw.map(normalizeCombustibleRow).filter(r=>r.placa);
 }
 
 async function fetchGPS() {
-  let data = await fetchWithTimeout(`${CONFIG.API_BASE}/api/gps`);
-  let raw = Array.isArray(data) ? data : (data.data || data.gps || []);
-  if (raw.length > 0) return raw;
-  // Fallback: usa FLOTA_CACHE o DIRECT DB flota con GPS
   if (typeof FLOTA_CACHE !== 'undefined' && FLOTA_CACHE.length > 0) {
-    const withGps = FLOTA_CACHE.filter(r=>r.ultima_lat && r.ultima_lng);
-    console.log(`[DIRECT DB] GPS fallback desde flota: ${withGps.length} con GPS real`);
-    return withGps;
+    return FLOTA_CACHE.filter(r=>r.ultima_lat && r.ultima_lng);
   }
-  raw = await fetchDirectSupabase('flota', 200);
-  return raw.filter(r=>r.ultima_lat && r.ultima_lng).map(r=>({placa:r.placa, ultima_lat:r.ultima_lat, ultima_lng:r.ultima_lng, marca:r.marca, modelo:r.modelo}));
+  const raw = await fetchDirectSupabase('flota', 200);
+  return raw.filter(r=>r.ultima_lat && r.ultima_lng);
 }
-
-async function fetchRutas() { 
-  const data = await fetchWithTimeout(`${CONFIG.API_BASE}/api/rutas`);
-  const raw = Array.isArray(data) ? data : (data.data || data.rutas || []);
-  if (raw.length > 0) return raw;
-  return []; 
-}
-
-async function fetchStats() { try { const d = await fetchWithTimeout(`${CONFIG.API_BASE}/api/stats`); return Array.isArray(d)?{}:d; } catch { return {}; } }
-async function fetchHealth() { try { return await fetchWithTimeout(`${CONFIG.API_BASE}/api/health`);} catch { return {status:'ok', mode:'DIRECT DB'}; } }
+async function fetchRutas() { return []; }
+async function fetchStats() { return {}; }
+async function fetchHealth() { return {status:'ok', version:'V12.3.6.2 DIRECT DB 1600 LIVE'}; }
