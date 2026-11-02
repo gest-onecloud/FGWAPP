@@ -1,5 +1,5 @@
 /**
- * FGWAPP V12.3.5 CLEAN FINAL - gps.js - SIN IMPORTS - FIX SyntaxError
+ * FGWAPP V12.3.6 DIRECT DB - gps.js - SIN IMPORTS
  * (R)
  */
 function formatGPS(lat, lng) {
