@@ -3,190 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FGWAPP Fleet Management SPA - V12.3 CLEAN RUTAS GPS 200 LIVE</title>
-  
-  <!-- CSS separados - NO data:text/css base64 - V12.3 CLEAN -->
-  <link rel="stylesheet" href="css/variables.css">
-  <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/filtros-ficha.css">
-  <link rel="stylesheet" href="css/combustible.css">
-  <link rel="stylesheet" href="css/rutas.css">
-  
-  <!-- Leaflet OSM libre SIN API KEY - fix CartoDB voyager bug -->
+  <title>FGWAPP Fleet Management SPA - V12.3.6.3 DIRECT DB 200+1600 LIVE</title>
+  <link rel="stylesheet" href="css/variables.css?v=12.3.6.3">
+  <link rel="stylesheet" href="css/layout.css?v=12.3.6.3">
+  <link rel="stylesheet" href="css/components.css?v=12.3.6.3">
+  <link rel="stylesheet" href="css/filtros-ficha.css?v=12.3.6.3">
+  <link rel="stylesheet" href="css/combustible.css?v=12.3.6.3">
+  <link rel="stylesheet" href="css/rutas.css?v=12.3.6.3">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <nav class="navbar">
-    <div class="navbar-brand">FGWAPP <span class="navbar-version">V12.3 CLEAN - RUTAS GPS 200 LIVE - 200 GDL/CLN + 1600 recargas + GPS real Supabase</span></div>
+    <div class="navbar-brand">FGWAPP <span class="navbar-version">V12.3.6.3 DIRECT DB - RUTAS GPS 200 LIVE + 1600 recargas + GPS real Supabase DIRECT</span></div>
     <div class="navbar-nav">
       <button class="nav-btn active" id="btn-nav-flota" onclick="switchView('flota')">Flota</button>
       <button class="nav-btn" id="btn-nav-combustible" onclick="switchView('combustible')">Combustible</button>
       <button class="nav-btn" id="btn-nav-rutas" onclick="switchView('rutas')">Rutas GPS</button>
     </div>
   </nav>
-
   <div class="container">
-    
-    <!-- VIEW FLOTA - 200 LIVE -->
     <div class="view active" id="view-flota">
       <div class="stats-grid" id="flota-stats">
-        <div class="stat-card"><label>Total Flota</label><span id="flota-total">-</span></div>
-        <div class="stat-card"><label>Operativas</label><span id="flota-operativas">-</span></div>
-        <div class="stat-card"><label>Mantenimiento</label><span id="flota-mantenimiento">-</span></div>
-        <div class="stat-card"><label>Consumo Prom</label><span id="flota-consumo-prom">-</span></div>
+        <div class="stat-card"><label>TOTAL FLOTA</label><span id="flota-total">-</span></div>
+        <div class="stat-card"><label>OPERATIVAS</label><span id="flota-operativas">-</span></div>
+        <div class="stat-card"><label>MANTENIMIENTO</label><span id="flota-mantenimiento">-</span></div>
+        <div class="stat-card"><label>CONSUMO PROM</label><span id="flota-consumo-prom">-</span></div>
       </div>
       <div class="table-container">
-        <table>
-          <thead id="thead-flota">
-            <tr>
-              <th>PLACA</th>
-              <th>MARCA</th>
-              <th>MODELO</th>
-              <th>AÑO</th>
-              <th>SUCURSAL</th>
-              <th>ESTADO</th>
-              <th>CONSUMO</th>
-              <th>KILOMETRAJE</th>
-              <th>CONSUMO PROM</th>
-            </tr>
-          </thead>
-          <tbody id="tbody-flota">
-            <tr><td colspan="9" style="text-align:center;padding:40px;">Despertando Render, espera 1 min... Cargando 200 LIVE Supabase (R)</td></tr>
-          </tbody>
-        </table>
+        <table><thead id="thead-flota"><tr><th>PLACA</th><th>MARCA</th><th>MODELO</th><th>AÑO</th><th>SUCURSAL</th><th>ESTADO</th><th>CONSUMO</th><th>KILOMETRAJE</th><th>CONSUMO PROM</th></tr></thead><tbody id="tbody-flota"><tr><td colspan="9" style="text-align:center;padding:24px;">Conectando DIRECT DB Supabase São Paulo... 200 LIVE (R)</td></tr></tbody></table>
       </div>
-      <div style="margin-top:12px;font-size:11px;color:#64748b;" id="flota-info">V12.3 CLEAN - Sin mocks - Timeout 60s</div>
+      <div style="margin-top:12px;font-size:11px;color:#64748b;" id="flota-info">V12.3.6.3 DIRECT DB</div>
     </div>
-
-    <!-- VIEW COMBUSTIBLE - 1600 recargas - IDs obligatorios V12.3 -->
     <div class="view" id="view-combustible">
-      <div class="stats-grid comb-stats" id="comb-stats">
-        <div class="stat-card"><label>Cargando...</label><span>-</span></div>
-      </div>
-      <div class="table-container">
-        <table>
-          <thead id="thead-comb">
-            <tr>
-              <th>FECHA</th>
-              <th>PLACA</th>
-              <th>SUCURSAL</th>
-              <th>TIPO</th>
-              <th>CONSUMO</th>
-              <th>CONSUMO ESTADO</th>
-              <th>COSTO</th>
-            </tr>
-          </thead>
-          <tbody id="tbody-comb">
-            <tr><td colspan="7" style="text-align:center;padding:40px;">Despertando Render, espera 1 min... Cargando 1600 LIVE (R)</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div style="margin-top:12px;font-size:11px;color:#64748b;" id="comb-info">V12.3 CLEAN - Filtros Excel dinámicos de data real</div>
+      <div class="stats-grid comb-stats" id="comb-stats"><div class="stat-card"><label>TOTAL RECARGAS</label><span id="comb-total">-</span></div><div class="stat-card"><label>TOTAL LITROS</label><span id="comb-litros">-</span></div><div class="stat-card"><label>COSTO</label><span id="comb-costo">-</span></div><div class="stat-card"><label>CONSUMO PROM</label><span id="comb-prom">-</span></div></div>
+      <div class="table-container"><table><thead id="thead-comb"><tr><th>FECHA</th><th>PLACA</th><th>SUCURSAL</th><th>TIPO</th><th>CONSUMO</th><th>CONSUMO ESTADO</th><th>COSTO</th></tr></thead><tbody id="tbody-comb"><tr><td colspan="7" style="text-align:center;padding:24px;">Cargando v_combustible_con_placa 1600 LIVE DIRECT DB...</td></tr></tbody></table></div>
+      <div style="margin-top:12px;font-size:11px;color:#64748b;" id="comb-info">V12.3.6.3 DIRECT DB 1600</div>
     </div>
-
-    <!-- VIEW RUTAS - Mapa arriba 500px, derecha Rutas Registradas, abajo tabla Vehiculos en Ruta -->
     <div class="view" id="view-rutas">
       <div class="rutas-layout">
-        <!-- Mapa arriba 500px OSM sin API KEY -->
-        <div class="mapa-container">
-          <div id="mapa-rutas"></div>
-        </div>
-        
+        <div class="mapa-container"><div id="mapa-rutas"></div></div>
         <div class="stats-grid rutas-kpis" id="rutas-kpis">
-          <div class="stat-card"><label>En Ruta GPS</label><span>-</span></div>
-          <div class="stat-card"><label>Sin GPS</label><span>-</span></div>
-          <div class="stat-card"><label>Rutas Registradas</label><span>-</span></div>
-          <div class="stat-card"><label>Total Flota</label><span>-</span></div>
+          <div class="stat-card"><label>EN RUTA GPS</label><span id="rutas-enruta">-</span></div>
+          <div class="stat-card"><label>SIN GPS</label><span id="rutas-singps">-</span></div>
+          <div class="stat-card"><label>RUTAS REGISTRADAS</label><span id="rutas-reg">-</span></div>
+          <div class="stat-card"><label>TOTAL FLOTA</label><span id="rutas-total">-</span></div>
         </div>
-
         <div class="rutas-middle">
-          <div class="table-container">
-            <table>
-              <thead id="thead-rutas">
-                <tr>
-                  <th>PLACA</th>
-                  <th>MARCA/MODELO</th>
-                  <th>SUCURSAL</th>
-                  <th>ESTADO</th>
-                  <th>GPS REAL</th>
-                  <th>KM</th>
-                  <th>ACCIÓN</th>
-                </tr>
-              </thead>
-              <tbody id="tbody-rutas">
-                <tr><td colspan="7" style="text-align:center;padding:40px;">Despertando Render, espera 1 min... Cargando GPS LIVE (R)</td></tr>
-              </tbody>
-            </table>
-          </div>
-          
-          <div class="rutas-lista-container">
-            <div class="rutas-lista-header">Rutas Registradas - Click para centrar pin</div>
-            <div id="rutas-lista">Cargando rutas reales...</div>
-          </div>
+          <div class="table-container"><table><thead id="thead-rutas"><tr><th>PLACA</th><th>MARCA/MODELO</th><th>SUCURSAL</th><th>ESTADO</th><th>GPS REAL</th><th>KM</th><th>ACCIÓN</th></tr></thead><tbody id="tbody-rutas"><tr><td colspan="7" style="text-align:center;padding:24px;">Cargando GPS DIRECT DB...</td></tr></tbody></table></div>
+          <div class="rutas-lista-container"><div class="rutas-lista-header">Rutas Registradas - Click para centrar pin</div><div id="rutas-lista">Cargando...</div></div>
         </div>
       </div>
     </div>
-
   </div>
+  <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this) cerrarFicha()"><div class="modal-content" id="modal-content"></div></div>
+  <div class="timeline-overlay" id="timeline-overlay" onclick="if(event.target===this) cerrarHistorial()"><div class="timeline-modal-inner" id="timeline-modal-inner"></div></div>
 
-  <!-- MODAL FICHA 9 CAMPOS OBLIGATORIO -->
-  <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this) cerrarFicha()">
-    <div class="modal-content" id="modal-content"></div>
-  </div>
-
-  <!-- TIMELINE OVERLAY OBLIGATORIO - Bug FG-0006 - id timeline-overlay + timeline-modal-inner en DOM -->
-  <div class="timeline-overlay" id="timeline-overlay" onclick="if(event.target===this) cerrarHistorial()">
-    <div class="timeline-modal-inner" id="timeline-modal-inner">
-      <!-- Contenido inyectado por abrirHistorialPorPlaca() -->
-    </div>
-  </div>
-
-  <!-- JS CLEAN sin mocks - Orden carga -->
-  <script src="js/config.js"></script>
-  <script src="js/gps.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/charts.js"></script>
-  <script src="js/dashboard.js"></script>
-  <script src="js/combustible.js"></script>
-  <script src="js/rutas.js"></script>
-  
+  <script src="js/config.js?v=12.3.6.3"></script>
+  <script src="js/gps.js?v=12.3.6.3"></script>
+  <script src="js/api.js?v=12.3.6.3"></script>
+  <script src="js/charts.js?v=12.3.6.3"></script>
+  <script src="js/dashboard.js?v=12.3.6.3"></script>
+  <script src="js/combustible.js?v=12.3.6.3"></script>
+  <script src="js/rutas.js?v=12.3.6.3"></script>
   <script>
-    // Init V12.3 CLEAN
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('%cFGWAPP V12.3 CLEAN - RUTAS GPS 200 LIVE (R)', 'color:#0f172a;font-weight:bold;font-size:14px;');
-      console.log('Sin genMock, sin Math.random, Timeout 60s, OSM sin API KEY');
-      
-      if (typeof initFlota === 'function') initFlota();
-      if (typeof initCombustible === 'function') initCombustible();
-      if (typeof initRutas === 'function') initRutas();
-      
-      // Verificación IDs críticos FG-0006
-      setTimeout(() => {
-        const checks = ['timeline-overlay','timeline-modal-inner','modal-overlay','modal-content','mapa-rutas','thead-comb','tbody-comb','comb-stats','comb-info','thead-rutas','tbody-rutas','rutas-lista','rutas-kpis'];
-        const missing = checks.filter(id => !document.getElementById(id));
-        if (missing.length) console.error('[V12.3] IDs faltantes - Bug FG-0006:', missing);
-        else console.log('[V12.3] Todos los IDs críticos presentes ✅ - V12.3 CLEAN validado');
-      }, 500);
+      console.log('%cFGWAPP V12.3.6.3 DIRECT DB 200+1600 LIVE (R)', 'color:#0f172a;font-weight:bold;font-size:14px;');
+      initFlota(); initCombustible(); initRutas();
+      setTimeout(()=>{
+        const checks=['timeline-overlay','timeline-modal-inner','modal-overlay','mapa-rutas','thead-comb','tbody-comb','comb-stats','thead-rutas','tbody-rutas'];
+        const miss=checks.filter(id=>!document.getElementById(id));
+        if(miss.length) console.error('[V12.3.6.3] IDs faltantes:', miss);
+        else console.log('[V12.3.6.3] IDs OK ✅ DIRECT DB');
+      },500);
     });
-
-    function switchView(name) {
-      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-      const target = document.getElementById('view-'+name);
-      if (target) target.classList.add('active');
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      const btn = document.getElementById('btn-nav-'+name);
-      if (btn) btn.classList.add('active');
-      
-      if (name === 'rutas' && typeof MAP !== 'undefined' && MAP) {
-        setTimeout(() => MAP.invalidateSize(), 300);
-      }
+    function switchView(name){
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      document.getElementById('view-'+name)?.classList.add('active');
+      document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+      document.getElementById('btn-nav-'+name)?.classList.add('active');
+      if(name==='rutas' && typeof MAP!=='undefined' && MAP) setTimeout(()=>MAP.invalidateSize(),300);
     }
-    
-    function closeAllExcelPanels() {
-      document.querySelectorAll('.excel-panel-header').forEach(el => el.remove());
-    }
+    function closeAllExcelPanels(){ document.querySelectorAll('.excel-panel-header').forEach(el=>el.remove()); }
   </script>
 </body>
 </html>
