@@ -1,0 +1,48 @@
+/* FGWAPP V13 FIX - Mapa por encima de Ficha - Z-INDEX
+   Añade este CSS al final de frontend/css/layout.css o components.css
+   (R)
+*/
+
+/* 1. Mapa siempre abajo */
+#map, .map-container, #mapa-flota, .leaflet-container {
+  z-index: 1 !important;
+  position: relative !important;
+}
+
+/* 2. Ficha y modales SIEMPRE por encima del mapa */
+#timeline-overlay,
+.timeline-overlay,
+#ficha-overlay,
+.ficha-modal,
+.modal-ficha,
+#modal-ficha,
+.timeline-modal-inner,
+.ficha-container {
+  z-index: 9999 !important;
+  position: fixed !important;
+}
+
+/* 3. Contenido interno de ficha también arriba */
+.timeline-modal-inner,
+.ficha-content,
+.modal-content {
+  z-index: 10000 !important;
+  position: relative !important;
+}
+
+/* 4. Excel filters también arriba pero debajo de ficha */
+.excel-panel-header {
+  z-index: 100 !important;
+}
+
+/* 5. Popup del mapa (Ver Ficha) debe estar debajo de la ficha pero arriba del mapa */
+.leaflet-popup {
+  z-index: 500 !important;
+}
+
+/* 6. Fix para el overlay oscuro */
+#timeline-overlay::before,
+.timeline-overlay::before,
+.ficha-overlay::before {
+  z-index: 9998 !important;
+}

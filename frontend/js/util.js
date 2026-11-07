@@ -1,0 +1,3 @@
+const FGWUtil={formatPlaca:(p)=>(p||'').toString().replace(/[^A-Z0-9-]/gi,'').toUpperCase().trim(),normalizePlaca:(p)=>(p||'').toString().replace(/\s+/g,'').toUpperCase(),formatKM:(k)=>{const n=Number(k)||0; return n.toLocaleString('es-MX')+' km';},formatLitros:(l)=>(Number(l)||0).toFixed(1)+' L',formatDinero:(c)=>'$'+(Number(c)||0).toLocaleString('es-MX',{minimumFractionDigits:2}),formatFecha:(f)=>{if(!f) return '-'; try{return new Date(f).toLocaleDateString('es-MX');}catch{return String(f);}},estrellas:(cal)=>{const n=Math.round(Number(cal)||0); return '★'.repeat(n)+'☆'.repeat(5-n)+' '+ (cal||0);},safe:(s)=>(s||'').toString()};
+window.FGWUtil=FGWUtil; window.Util=FGWUtil;
+console.log('[V13.4] Util.js OK fix (placa||"").replace');

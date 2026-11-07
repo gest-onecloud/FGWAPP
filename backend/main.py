@@ -1,12 +1,19 @@
-# FGWAPP Backend V12.3.5 CLEAN FIX - main.py
-# Fix ModuleNotFoundError: No module named 'control_combustible'
-# (R)
+# FGWAPP Backend V13.6.3 CLEAN - main.py
+# Fallback endpoints directos a Supabase (sin módulos externos)
+# Compatible con Render: usa PORT, SUPABASE_URL, SUPABASE_ANON_KEY / SUPABASE_KEY
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
-app = FastAPI(title="FGWAPP Backend V12.3.5 CLEAN - 200 LIVE + GPS REAL")
+# Cargar .env si existe (útil en local; en Render se usan las ENV del dashboard)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+app = FastAPI(title="FGWAPP Backend V13.6.3 CLEAN - 200 LIVE + GPS REAL")
 
 # CORS para mjd-solutions.mx
 app.add_middleware(
@@ -84,7 +91,7 @@ else:
         from supabase import create_client
         import os
         url = os.getenv("SUPABASE_URL", "https://yjbzbfeivxkrxzlpehxj.supabase.co")
-        key = os.getenv("SUPABASE_KEY", "")
+        key = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_ANON_KEY", "")
         if not key:
             # key publica anon de tu proyecto - ponla en Render ENV
             return []
@@ -101,7 +108,7 @@ else:
             from supabase import create_client
             import os
             url = os.getenv("SUPABASE_URL", "https://yjbzbfeivxkrxzlpehxj.supabase.co")
-            key = os.getenv("SUPABASE_KEY", "")
+            key = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_ANON_KEY", "")
             if not key:
                 return []
             supabase = create_client(url, key)
@@ -121,7 +128,7 @@ else:
             from supabase import create_client
             import os
             url = os.getenv("SUPABASE_URL", "https://yjbzbfeivxkrxzlpehxj.supabase.co")
-            key = os.getenv("SUPABASE_KEY", "")
+            key = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_ANON_KEY", "")
             if not key:
                 return []
             supabase = create_client(url, key)
@@ -146,11 +153,11 @@ if stats_router:
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "V12.3.5 CLEAN", "flota": "200 LIVE", "gps": "real ultima_lat/lng", "fix": "ModuleNotFoundError control_combustible"}
+    return {"status": "ok", "version": "V13.6.3 CLEAN", "flota": "200 LIVE", "gps": "real ultima_lat/lng", "supabase": "direct fallback"}
 
 @app.get("/")
 def root():
-    return {"message": "FGWAPP Backend V12.3.5 CLEAN - 200 LIVE + GPS REAL - Fix import"}
+    return {"message": "FGWAPP Backend V13.6.3 CLEAN - 200 LIVE + GPS REAL"}
 
 # Para local
 if __name__ == "__main__":

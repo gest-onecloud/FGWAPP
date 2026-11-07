@@ -1,14 +1,2 @@
-/**
- * FGWAPP V12.3.6 DIRECT DB - gps.js - SIN IMPORTS
- * (R)
- */
-function formatGPS(lat, lng) {
-  if (lat == null || lng == null) return 'Sin GPS';
-  const la = Number(lat), ln = Number(lng);
-  if (isNaN(la) || isNaN(ln)) return 'Sin GPS';
-  return `${la.toFixed(5)}, ${ln.toFixed(5)}`;
-}
-function isValidGPS(lat, lng) {
-  const la = Number(lat), ln = Number(lng);
-  return !isNaN(la) && !isNaN(ln) && la !== 0 && ln !== 0;
-}
+async function renderGPS(){await renderRutas(); const gps=await FGWAPI.fetchGPS(); console.log('[GPS]',gps.length);}
+window.renderGPS=renderGPS;

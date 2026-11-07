@@ -1,190 +1,28 @@
-/**
- * FGWAPP V12.3.6.4 - dashboard.js - Fix flota 0 + filtros Excel con buscar + marcar todos
- * (R)
- */
-let FLOTA_CACHE = [];
-let FLOTA_FILTERED = [];
-let FLOTA_ACTIVE_FILTERS = {};
 
-function initFlota() { console.log('[FLOTA] V12.3.6.4 DIRECT DB'); loadFlotaData(); }
-
-async function loadFlotaData() {
-  const tbody = document.getElementById('tbody-flota');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;">Conectando DIRECT DB Supabase São Paulo... 200 LIVE (R)</td></tr>';
-  try {
-    const data = await fetchFlota();
-    FLOTA_CACHE = data;
-    FLOTA_FILTERED = [...data];
-    console.log(`[FLOTA] ${data.length} LIVE DIRECT DB`, data[0]);
-    renderFlotaTable(FLOTA_FILTERED);
-    renderFlotaStats(FLOTA_FILTERED);
-    buildFlotaPanels(FLOTA_CACHE);
-    const info = document.getElementById('flota-info');
-    if (info) info.textContent = `Mostrando ${FLOTA_FILTERED.length} de ${FLOTA_CACHE.length} - V12.3.6.4 DIRECT DB - Supabase real`;
-  } catch (e) {
-    console.error('[FLOTA]', e);
-    if (tbody) tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#ef4444;">${e.message}<br>Verifique fix_rls_anon_read.sql ejecutado</td></tr>`;
-  }
+async function renderDashboardKPIs(){
+  const content=document.getElementById('dash-content');
+  const kpis=document.getElementById('dash-kpis');
+  if(!content) return;
+  content.innerHTML='Cargando Dashboard...';
+  try{
+    const flota = FGWAPI.FLOTA_CACHE.data.length?FGWAPI.FLOTA_CACHE.data:await FGWAPI.fetchFlota();
+    const proximos = await FGWAPI.fetchProximos().catch(()=>[]);
+    const docs = await FGWAPI.fetchEstadoDocs().catch(()=>[]);
+    const oper = flota.filter(f=>String(f.estado||'').toLowerCase().includes('oper')).length;
+    const mant = flota.filter(f=>String(f.estado||'').toLowerCase().includes('mante')).length;
+    if(kpis) kpis.innerHTML='TOTAL:'+flota.length+' OPER:'+oper+' MANT:'+mant;
+    content.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px"><div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px"><h4>Flota</h4><canvas id="chart-flota"></canvas></div><div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px"><h4>Proximos</h4><canvas id="chart-prox"></canvas></div><div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px"><h4>Docs</h4><canvas id="chart-docs"></canvas></div><div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px"><h4>Indicadores</h4><div>KM Total: '+(flota.reduce((a,f)=>a+(Number(f.km_actual||0)),0).toLocaleString())+'<br>Prox Vencidos: '+(proximos.filter(p=>Number(p.km_restantes)<=0).length)+'<br>Docs Vencidos: '+(docs.filter(d=>String(d.estado_general).includes('VENCIDO')).length)+'</div></div></div>';
+    if(typeof Chart==='undefined'){ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'; document.head.appendChild(s); await new Promise(r=>s.onload=r); }
+    new Chart(document.getElementById('chart-flota'),{type:'doughnut',data:{labels:['Operativas','Mant','Fuera'],datasets:[{data:[oper,mant,flota.length-oper-mant],backgroundColor:['#16a34a','#ea580c','#ef4444']}]},options:{responsive:true}});
+    const venc=proximos.filter(p=>Number(p.km_restantes)<=0).length;
+    const crit=proximos.filter(p=>{let k=Number(p.km_restantes);return k>0&&k<=500;}).length;
+    const porV=proximos.filter(p=>{let k=Number(p.km_restantes);return k>500&&k<=1000;}).length;
+    new Chart(document.getElementById('chart-prox'),{type:'bar',data:{labels:['Venc','Crit','PorVencer'],datasets:[{data:[venc,crit,porV],backgroundColor:['#ef4444','#dc2626','#ea580c']}]},options:{responsive:true}});
+    const docsV=docs.filter(d=>String(d.estado_general)==='VIGENTE').length;
+    const docsPV=docs.filter(d=>String(d.estado_general).includes('POR VENCER')).length;
+    const docsVe=docs.filter(d=>String(d.estado_general)==='VENCIDO').length;
+    new Chart(document.getElementById('chart-docs'),{type:'doughnut',data:{labels:['Vig','PorV','Venc'],datasets:[{data:[docsV,docsPV,docsVe],backgroundColor:['#16a34a','#ea580c','#ef4444']}]},options:{responsive:true}});
+  }catch(e){ content.innerHTML='Error:'+e.message; console.error(e); }
 }
-
-function renderFlotaStats(data) {
-  const elTotal = document.getElementById('flota-total');
-  const elOperativas = document.getElementById('flota-operativas');
-  const elMantenimiento = document.getElementById('flota-mantenimiento');
-  const elConsumo = document.getElementById('flota-consumo-prom');
-  if (!elTotal) return;
-  const operativas = data.filter(d=>{ const e=(d.estado_operativo||'').toLowerCase(); return e.includes('ruta')||e.includes('operat')||e.includes('activo')||e==='en ruta'; }).length;
-  const mantenimiento = data.filter(d=>(d.estado_operativo||'').toLowerCase().includes('manten')).length;
-  const conGPS = data.filter(d=>d.ultima_lat && d.ultima_lng).length;
-  const conConsumo = data.filter(d=>d.consumo_promedio>0);
-  const consumoProm = conConsumo.length ? (conConsumo.reduce((s,d)=>s+d.consumo_promedio,0)/conConsumo.length).toFixed(2) : (data.reduce((s,d)=>s+(d.kilometraje||0),0)>0?'Calculado':'0.00');
-  elTotal.textContent = data.length;
-  if (elOperativas) elOperativas.textContent = operativas || data.length;
-  if (elMantenimiento) elMantenimiento.textContent = mantenimiento;
-  if (elConsumo) elConsumo.textContent = data.length>0 ? `${conGPS} con GPS real - ${conConsumo.length>0?conConsumo[0].consumo_promedio?.toFixed(2)||'10.85':'10.85'} km/l - Meta 10.8` : '0 con GPS real - Meta 10.8';
-}
-
-function renderFlotaTable(data) {
-  const tbody = document.getElementById('tbody-flota');
-  if (!tbody) return;
-  tbody.innerHTML = '';
-  if (data.length===0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:#ef4444;">0 unidades - Verifique Supabase flota tiene 200 filas y fix_rls_anon_read.sql ejecutado<br><small>Consola: [DIRECT DB] flota -> debe dar 200 LIVE</small></td></tr>';
-    return;
-  }
-  data.slice(0,200).forEach(row=>{
-    const tr = document.createElement('tr');
-    tr.style.cursor='pointer';
-    const kmText = row.kilometraje>0?`${Number(row.kilometraje).toLocaleString()} km`:'0 km';
-    const consumoText = row.consumo_promedio>0?`${Number(row.consumo_promedio).toFixed(2)} km/l`:'0.00 km/l';
-    tr.innerHTML = `<td><strong>${row.placa}</strong></td><td>${row.marca||''}</td><td>${row.modelo||''}</td><td>${row.anio||''}</td><td>${row.sucursal||''}</td><td><span class="badge-estado ok">${row.estado_operativo||'En Ruta'}</span></td><td><span class="badge-consumo ok">${row.consumo_estado||'Normal'}</span></td><td>${kmText}</td><td>${row.ultima_lat?`${Number(row.ultima_lat).toFixed(3)},${Number(row.ultima_lng).toFixed(3)}`:'Sin GPS'}</td>`;
-    tr.addEventListener('click',()=>abrirFicha(row));
-    tbody.appendChild(tr);
-  });
-}
-
-function abrirFicha(row) {
-  const overlay = document.getElementById('modal-overlay');
-  const content = document.getElementById('modal-content');
-  if (!overlay||!content) return;
-  content.innerHTML = `
-    <div class="ficha-header"><h2>${row.placa} - Ficha Técnica V12.3.6.4</h2><button onclick="cerrarFicha()" style="border:none;background:none;font-size:18px;cursor:pointer;">✕</button></div>
-    <div class="ficha-grid">
-      <div class="ficha-field"><label>PLACA</label><span>${row.placa}</span></div>
-      <div class="ficha-field"><label>MARCA / MODELO</label><span>${row.marca} ${row.modelo}</span></div>
-      <div class="ficha-field"><label>AÑO</label><span>${row.anio}</span></div>
-      <div class="ficha-field"><label>SUCURSAL</label><span>${row.sucursal}</span></div>
-      <div class="ficha-field"><label>ESTADO OPERATIVO</label><span>${row.estado_operativo}</span></div>
-      <div class="ficha-field"><label>CONSUMO ESTADO</label><span>${row.consumo_estado}</span></div>
-      <div class="ficha-field"><label>KILOMETRAJE</label><span>${row.kilometraje>0?Number(row.kilometraje).toLocaleString()+' km':'0 km'}</span></div>
-      <div class="ficha-field"><label>CONSUMO PROMEDIO</label><span>${row.consumo_promedio>0?Number(row.consumo_promedio).toFixed(2)+' km/l':'10.85 km/l - Meta'}</span></div>
-      <div class="ficha-field"><label>MANTENIMIENTO</label><span>${row.mantenimiento||'AL DIA'}</span></div>
-    </div>
-    <div class="ficha-actions"><button class="btn-primary" onclick="verHistorialDesdeFlota('${row.placa}')">Ver Historial</button><button class="btn-secondary" onclick="verRutaDesdeFlota('${row.placa}')">Ver Ruta GPS</button></div>
-    ${row.ultima_lat?`<div style="padding:0 20px 16px;font-size:11px;color:#64748b;">GPS REAL DIRECT DB: ${Number(row.ultima_lat).toFixed(5)}, ${Number(row.ultima_lng).toFixed(5)}</div>`:''}
-  `;
-  overlay.classList.add('active');
-  document.body.style.overflow='hidden';
-}
-function cerrarFicha(){ document.getElementById('modal-overlay')?.classList.remove('active'); document.body.style.overflow=''; }
-function verHistorialDesdeFlota(p){ cerrarFicha(); switchView('combustible'); setTimeout(()=>typeof abrirHistorialPorPlaca==='function'&&abrirHistorialPorPlaca(p),300); }
-function verRutaDesdeFlota(p){ cerrarFicha(); switchView('rutas'); setTimeout(()=>typeof centrarEnPin==='function'&&centrarEnPin(p),500); }
-
-function buildFlotaPanels(data) {
-  const thead = document.getElementById('thead-flota');
-  if (!thead) return;
-  const campos = [
-    { key:'placa', label:'PLACA', getVal:d=>d.placa },
-    { key:'marca', label:'MARCA', getVal:d=>d.marca },
-    { key:'modelo', label:'MODELO', getVal:d=>d.modelo },
-    { key:'anio', label:'AÑO', getVal:d=>String(d.anio) },
-    { key:'sucursal', label:'SUCURSAL', getVal:d=>d.sucursal },
-    { key:'estado_operativo', label:'ESTADO', getVal:d=>d.estado_operativo },
-    { key:'consumo_estado', label:'CONSUMO', getVal:d=>d.consumo_estado },
-  ];
-  document.querySelectorAll('.excel-panel-header.flota-panel').forEach(el=>el.remove());
-  const tr = thead.querySelector('tr');
-  if (!tr) return;
-  const ths = tr.querySelectorAll('th');
-  campos.forEach((campo,idx)=>{
-    if (!ths[idx]) return;
-    const th = ths[idx];
-    th.style.cursor='pointer';
-    const active = FLOTA_ACTIVE_FILTERS[campo.key]?.size>0;
-    th.innerHTML = `${campo.label} <span style="font-size:10px;">▼</span>${active?' ●':''}`;
-    th.onclick = (e)=>{ e.stopPropagation(); toggleFlotaPanel(campo, data, th); };
-  });
-}
-
-function toggleFlotaPanel(campo, data, anchorTh) {
-  closeAllExcelPanels();
-  const valores = [...new Set(data.map(d=>campo.getVal(d)).filter(Boolean))].sort();
-  const panel = document.createElement('div');
-  panel.className = 'excel-panel-header flota-panel';
-  panel.style.cssText = 'position:absolute;min-width:280px;max-width:380px;max-height:420px;overflow:hidden;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.15);z-index:100;display:flex;flex-direction:column;';
-  const rect = anchorTh.getBoundingClientRect();
-  panel.style.top = `${rect.bottom + window.scrollY + 4}px`;
-  panel.style.left = `${rect.left + window.scrollX}px`;
-  const activeSet = FLOTA_ACTIVE_FILTERS[campo.key] || new Set(valores);
-  panel.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #e2e8f0;background:#f8fafc;">
-      <strong style="font-size:12px;">${campo.label}</strong><button onclick="closeAllExcelPanels()" style="border:none;background:none;cursor:pointer;">✕</button>
-    </div>
-    <div style="padding:8px;border-bottom:1px solid #f1f5f9;">
-      <input type="text" placeholder="Buscar..." id="excel-search-${campo.key}" style="width:100%;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;" />
-      <div style="display:flex;gap:6px;margin-top:6px;">
-        <button id="btn-marcar-${campo.key}" style="flex:1;padding:4px 8px;font-size:11px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer;">Marcar todos</button>
-        <button id="btn-desmarcar-${campo.key}" style="flex:1;padding:4px 8px;font-size:11px;border:1px solid #e2e8f0;border-radius:4px;background:#fff;cursor:pointer;">Desmarcar todos</button>
-      </div>
-    </div>
-    <div id="excel-list-${campo.key}" style="padding:8px;max-height:240px;overflow-y:auto;flex:1;">
-      ${valores.map(v=>`<label class="excel-item" data-val="${String(v).toLowerCase()}" style="display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0;cursor:pointer;"><input type="checkbox" value="${String(v).replace(/"/g,'&quot;')}" ${activeSet.has(v)?'checked':''} class="excel-cb"> <span>${v}</span></label>`).join('')}
-    </div>
-    <div style="padding:8px;border-top:1px solid #e2e8f0;display:flex;gap:6px;background:#f8fafc;">
-      <button id="btn-aplicar-${campo.key}" style="flex:1;padding:6px 12px;font-size:12px;background:#0f172a;color:#fff;border:none;border-radius:6px;cursor:pointer;">Aplicar</button>
-      <button id="btn-limpiar-${campo.key}" style="flex:1;padding:6px 12px;font-size:12px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;cursor:pointer;">Limpiar</button>
-    </div>
-  `;
-  document.body.appendChild(panel);
-  const searchInput = panel.querySelector(`#excel-search-${campo.key}`);
-  searchInput.addEventListener('input', ()=>{
-    const q = searchInput.value.toLowerCase();
-    panel.querySelectorAll('.excel-item').forEach(label=>{
-      const val = label.getAttribute('data-val');
-      label.style.display = val.includes(q) ? 'flex' : 'none';
-    });
-  });
-  searchInput.focus();
-  panel.querySelector(`#btn-marcar-${campo.key}`).onclick = ()=>{ panel.querySelectorAll('.excel-item:not([style*="display: none"]) .excel-cb').forEach(cb=>cb.checked=true); };
-  panel.querySelector(`#btn-desmarcar-${campo.key}`).onclick = ()=>{ panel.querySelectorAll('.excel-item:not([style*="display: none"]) .excel-cb').forEach(cb=>cb.checked=false); };
-  panel.querySelector(`#btn-aplicar-${campo.key}`).onclick = ()=>{
-    const selected = new Set([...panel.querySelectorAll('.excel-cb:checked')].map(cb=>cb.value));
-    if (selected.size===valores.length||selected.size===0) delete FLOTA_ACTIVE_FILTERS[campo.key];
-    else FLOTA_ACTIVE_FILTERS[campo.key]=selected;
-    applyFlotaFilters();
-    closeAllExcelPanels();
-  };
-  panel.querySelector(`#btn-limpiar-${campo.key}`).onclick = ()=>{ delete FLOTA_ACTIVE_FILTERS[campo.key]; applyFlotaFilters(); closeAllExcelPanels(); };
-}
-
-function applyFlotaFilters() {
-  let filtered=[...FLOTA_CACHE];
-  Object.entries(FLOTA_ACTIVE_FILTERS).forEach(([key,set])=>{
-    const campo = {placa:{getVal:d=>d.placa},marca:{getVal:d=>d.marca},modelo:{getVal:d=>d.modelo},anio:{getVal:d=>String(d.anio)},sucursal:{getVal:d=>d.sucursal},estado_operativo:{getVal:d=>d.estado_operativo},consumo_estado:{getVal:d=>d.consumo_estado}}[key];
-    if (!campo) return;
-    filtered=filtered.filter(d=>set.has(campo.getVal(d)));
-  });
-  FLOTA_FILTERED=filtered;
-  renderFlotaTable(FLOTA_FILTERED);
-  renderFlotaStats(FLOTA_FILTERED);
-  buildFlotaPanels(FLOTA_CACHE);
-}
-
-function switchView(name){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+name)?.classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('btn-nav-'+name)?.classList.add('active');
-  if(name==='rutas' && typeof MAP!=='undefined' && MAP) setTimeout(()=>MAP.invalidateSize(),300);
-}
-function closeAllExcelPanels(){ document.querySelectorAll('.excel-panel-header').forEach(el=>el.remove()); }
+window.renderDashboardKPIs=renderDashboardKPIs;
+console.log('dashboard.js V13.6.3 loaded');

@@ -1,90 +1,115 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FGWAPP Fleet Management SPA - V12.3.6.3 DIRECT DB 200+1600 LIVE</title>
-  <link rel="stylesheet" href="css/variables.css?v=12.3.6.3">
-  <link rel="stylesheet" href="css/layout.css?v=12.3.6.3">
-  <link rel="stylesheet" href="css/components.css?v=12.3.6.3">
-  <link rel="stylesheet" href="css/filtros-ficha.css?v=12.3.6.3">
-  <link rel="stylesheet" href="css/combustible.css?v=12.3.6.3">
-  <link rel="stylesheet" href="css/rutas.css?v=12.3.6.3">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FGWAPP V13.6.3 CLEAN</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="css/style.css?v=13.6.3"/>
 </head>
 <body>
-  <nav class="navbar">
-    <div class="navbar-brand">FGWAPP <span class="navbar-version">V12.3.6.3 DIRECT DB - RUTAS GPS 200 LIVE + 1600 recargas + GPS real Supabase DIRECT</span></div>
-    <div class="navbar-nav">
-      <button class="nav-btn active" id="btn-nav-flota" onclick="switchView('flota')">Flota</button>
-      <button class="nav-btn" id="btn-nav-combustible" onclick="switchView('combustible')">Combustible</button>
-      <button class="nav-btn" id="btn-nav-rutas" onclick="switchView('rutas')">Rutas GPS</button>
-    </div>
-  </nav>
-  <div class="container">
-    <div class="view active" id="view-flota">
-      <div class="stats-grid" id="flota-stats">
-        <div class="stat-card"><label>TOTAL FLOTA</label><span id="flota-total">-</span></div>
-        <div class="stat-card"><label>OPERATIVAS</label><span id="flota-operativas">-</span></div>
-        <div class="stat-card"><label>MANTENIMIENTO</label><span id="flota-mantenimiento">-</span></div>
-        <div class="stat-card"><label>CONSUMO PROM</label><span id="flota-consumo-prom">-</span></div>
-      </div>
-      <div class="table-container">
-        <table><thead id="thead-flota"><tr><th>PLACA</th><th>MARCA</th><th>MODELO</th><th>AÑO</th><th>SUCURSAL</th><th>ESTADO</th><th>CONSUMO</th><th>KILOMETRAJE</th><th>CONSUMO PROM</th></tr></thead><tbody id="tbody-flota"><tr><td colspan="9" style="text-align:center;padding:24px;">Conectando DIRECT DB Supabase São Paulo... 200 LIVE (R)</td></tr></tbody></table>
-      </div>
-      <div style="margin-top:12px;font-size:11px;color:#64748b;" id="flota-info">V12.3.6.3 DIRECT DB</div>
-    </div>
-    <div class="view" id="view-combustible">
-      <div class="stats-grid comb-stats" id="comb-stats"><div class="stat-card"><label>TOTAL RECARGAS</label><span id="comb-total">-</span></div><div class="stat-card"><label>TOTAL LITROS</label><span id="comb-litros">-</span></div><div class="stat-card"><label>COSTO</label><span id="comb-costo">-</span></div><div class="stat-card"><label>CONSUMO PROM</label><span id="comb-prom">-</span></div></div>
-      <div class="table-container"><table><thead id="thead-comb"><tr><th>FECHA</th><th>PLACA</th><th>SUCURSAL</th><th>TIPO</th><th>CONSUMO</th><th>CONSUMO ESTADO</th><th>COSTO</th></tr></thead><tbody id="tbody-comb"><tr><td colspan="7" style="text-align:center;padding:24px;">Cargando v_combustible_con_placa 1600 LIVE DIRECT DB...</td></tr></tbody></table></div>
-      <div style="margin-top:12px;font-size:11px;color:#64748b;" id="comb-info">V12.3.6.3 DIRECT DB 1600</div>
-    </div>
-    <div class="view" id="view-rutas">
-      <div class="rutas-layout">
-        <div class="mapa-container"><div id="mapa-rutas"></div></div>
-        <div class="stats-grid rutas-kpis" id="rutas-kpis">
-          <div class="stat-card"><label>EN RUTA GPS</label><span id="rutas-enruta">-</span></div>
-          <div class="stat-card"><label>SIN GPS</label><span id="rutas-singps">-</span></div>
-          <div class="stat-card"><label>RUTAS REGISTRADAS</label><span id="rutas-reg">-</span></div>
-          <div class="stat-card"><label>TOTAL FLOTA</label><span id="rutas-total">-</span></div>
-        </div>
-        <div class="rutas-middle">
-          <div class="table-container"><table><thead id="thead-rutas"><tr><th>PLACA</th><th>MARCA/MODELO</th><th>SUCURSAL</th><th>ESTADO</th><th>GPS REAL</th><th>KM</th><th>ACCIÓN</th></tr></thead><tbody id="tbody-rutas"><tr><td colspan="7" style="text-align:center;padding:24px;">Cargando GPS DIRECT DB...</td></tr></tbody></table></div>
-          <div class="rutas-lista-container"><div class="rutas-lista-header">Rutas Registradas - Click para centrar pin</div><div id="rutas-lista">Cargando...</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this) cerrarFicha()"><div class="modal-content" id="modal-content"></div></div>
-  <div class="timeline-overlay" id="timeline-overlay" onclick="if(event.target===this) cerrarHistorial()"><div class="timeline-modal-inner" id="timeline-modal-inner"></div></div>
+<header><div><b>FGWAPP</b> V13.6.3 CLEAN</div><div style="opacity:.7">mjd-solutions.mx/FGWAPP/ | 200 Flota | 50 Choferes | Sidebar + Top</div></header>
+<nav>
+  <button id="btn-nav-flota" class="active" onclick="switchView('flota')">Flota (200)</button>
+  <button id="btn-nav-combustible" onclick="switchView('combustible')">Combustible (1000)</button>
+  <button id="btn-nav-rutas" onclick="switchView('rutas')">Rutas GPS (200 pins)</button>
+  <button id="btn-nav-choferes" onclick="switchView('choferes')">Choferes (50)</button>
+</nav>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">Mantenimiento</div>
+    <button id="btn-nav-talleres" onclick="switchView('talleres')">🔧 Talleres <span class="count">5</span></button>
+    <button id="btn-nav-mantenimientos" onclick="switchView('mantenimientos')">🛠 Mantenimientos <span class="count">200</span></button>
+    <button id="btn-nav-proximos" onclick="switchView('proximos')">⏰ Próximos Mant</button>
 
-  <script src="js/config.js?v=12.3.6.3"></script>
-  <script src="js/gps.js?v=12.3.6.3"></script>
-  <script src="js/api.js?v=12.3.6.3"></script>
-  <script src="js/charts.js?v=12.3.6.3"></script>
-  <script src="js/dashboard.js?v=12.3.6.3"></script>
-  <script src="js/combustible.js?v=12.3.6.3"></script>
-  <script src="js/rutas.js?v=12.3.6.3"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('%cFGWAPP V12.3.6.3 DIRECT DB 200+1600 LIVE (R)', 'color:#0f172a;font-weight:bold;font-size:14px;');
-      initFlota(); initCombustible(); initRutas();
-      setTimeout(()=>{
-        const checks=['timeline-overlay','timeline-modal-inner','modal-overlay','mapa-rutas','thead-comb','tbody-comb','comb-stats','thead-rutas','tbody-rutas'];
-        const miss=checks.filter(id=>!document.getElementById(id));
-        if(miss.length) console.error('[V12.3.6.3] IDs faltantes:', miss);
-        else console.log('[V12.3.6.3] IDs OK ✅ DIRECT DB');
-      },500);
-    });
-    function switchView(name){
-      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-      document.getElementById('view-'+name)?.classList.add('active');
-      document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-      document.getElementById('btn-nav-'+name)?.classList.add('active');
-      if(name==='rutas' && typeof MAP!=='undefined' && MAP) setTimeout(()=>MAP.invalidateSize(),300);
-    }
-    function closeAllExcelPanels(){ document.querySelectorAll('.excel-panel-header').forEach(el=>el.remove()); }
-  </script>
+    <div class="sidebar-section">Documentos</div>
+    <button id="btn-nav-seguros" onclick="switchView('seguros')">🛡 Seguros <span class="count">200</span></button>
+    <button id="btn-nav-impuestos" onclick="switchView('impuestos')">📄 Impuestos <span class="count">200</span></button>
+    <button id="btn-nav-infracciones" onclick="switchView('infracciones')">🚨 Infracciones <span class="count">80</span></button>
+    <button id="btn-nav-documentos" onclick="switchView('documentos')">📋 Estado Docs</button>
+
+    <div class="sidebar-section">Operación</div>
+    <button id="btn-nav-viajes" onclick="switchView('viajes')">🚚 Viajes <span class="count">100</span></button>
+    <button id="btn-nav-gps" onclick="switchView('gps')">📡 GPS Tracking <span class="count">2000</span></button>
+
+    <div class="sidebar-section">Analytics</div>
+    <button id="btn-nav-dashboard" onclick="switchView('dashboard')">📊 Dashboard KPIs</button>
+    <button id="btn-nav-flujo" onclick="switchView('flujo')">💰 Flujo Caja</button>
+  </aside>
+
+  <main class="main-content">
+    <div id="view-flota" class="view"><div style="display:flex;gap:8px;padding:0 20px"><button onclick="FGWExcelFilter.clearAll('thead-flota')" style="padding:4px 10px;font-size:12px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer">Limpiar filtros Flota</button></div><div id="flota-stats" class="kpis"><span id="flota-total"></span><span id="flota-operativas"></span><span id="flota-mantenimiento"></span><span id="flota-consumo-prom"></span></div><table><thead id="thead-flota"></thead><tbody id="tbody-flota"></tbody></table></div>
+
+    <div id="view-combustible" class="view" style="display:none"><div id="comb-stats" class="kpis"></div><div id="comb-info" style="padding:0 20px;opacity:.7"></div><table><thead id="thead-comb"></thead><tbody id="tbody-comb"></tbody></table></div>
+
+    <div id="view-rutas" class="view" style="display:none"><div id="rutas-kpis" class="kpis"></div><div id="mapa-rutas"></div><div id="rutas-lista" style="padding:10px 20px"></div><table><thead id="thead-rutas"></thead><tbody id="tbody-rutas"></tbody></table></div>
+
+    <div id="view-talleres" class="view" style="display:none"><div id="talleres-kpis" class="kpis"></div><table><thead id="thead-talleres"></thead><tbody id="tbody-talleres"></tbody></table><div id="talleres-table-container" style="margin:10px 20px"></div></div>
+
+    <div id="view-choferes" class="view" style="display:none"><div id="choferes-kpis" class="kpis"></div><div id="choferes-table-container" style="margin:0 20px;background:#fff;border-radius:12px;padding:10px;border:1px solid #e5e7eb"></div></div>
+
+    <!-- NUEVAS VISTAS SIDEBAR -->
+    <div id="view-mantenimientos" class="view" style="display:none"><div id="mant-kpis" class="kpis"></div><table><thead id="thead-mant"></thead><tbody id="tbody-mant"></tbody></table></div>
+    <div id="view-seguros" class="view" style="display:none"><div id="seguros-kpis" class="kpis"></div><table><thead id="thead-seguros"></thead><tbody id="tbody-seguros"></tbody></table></div>
+    <div id="view-impuestos" class="view" style="display:none"><div id="impuestos-kpis" class="kpis"></div><table><thead id="thead-impuestos"></thead><tbody id="tbody-impuestos"></tbody></table></div>
+    <div id="view-infracciones" class="view" style="display:none"><div id="infra-kpis" class="kpis"></div><table><thead id="thead-infra"></thead><tbody id="tbody-infra"></tbody></table></div>
+    <div id="view-viajes" class="view" style="display:none"><div id="viajes-kpis" class="kpis"></div><table><thead id="thead-viajes"></thead><tbody id="tbody-viajes"></tbody></table></div>
+    <div id="view-gps" class="view" style="display:none"><div id="gps-kpis" class="kpis"></div><table><thead id="thead-gps"></thead><tbody id="tbody-gps"></tbody></table></div>
+    <div id="view-dashboard" class="view" style="display:none"><div id="dash-kpis" class="kpis"></div><div id="dash-content" style="padding:20px">Dashboard KPIs - v_flota_dashboard, v_indicadores_flota, v_disponibilidad_vehiculos</div></div>
+    <div id="view-documentos" class="view" style="display:none"><div id="doc-kpis" class="kpis"></div><div id="doc-content"></div></div>
+    <div id="view-proximos" class="view" style="display:none"><div id="prox-kpis" class="kpis"></div><table><thead id="thead-prox"></thead><tbody id="tbody-prox"></tbody></table></div>
+    <div id="view-flujo" class="view" style="display:none"><div id="flujo-kpis" class="kpis"></div><div id="flujo-content"></div></div>
+  </main>
+</div>
+
+<div id="timeline-overlay" class="modal" onclick="if(event.target===this) this.style.display='none'"><div id="timeline-modal-inner" class="modal-inner"></div></div>
+<div id="excel-panel-header"></div>
+
+<script src="js/config.js?v=13.6.3"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/api.js?v=13.6.3"></script>
+<script src="js/util.js?v=13.6.3"></script>
+<script src="js/flota.js?v=13.6.3"></script>
+<script src="js/dashboard.js?v=13.6.3"></script>
+<script src="js/combustible.js?v=13.6.3"></script>
+<script src="js/rutas.js?v=13.6.3"></script>
+<script src="js/gps.js?v=13.6.3"></script>
+<script src="js/charts.js?v=13.6.3"></script>
+<script src="js/talleres.js?v=13.6.3"></script>
+<script src="js/excel-filter.js?v=13.6.3"></script>
+<script src="js/choferes.js?v=13.6.3"></script>
+<script src="js/mantenimientos.js?v=13.6.3"></script>
+<script src="js/seguros.js?v=13.6.3"></script>
+<script src="js/impuestos.js?v=13.6.3"></script>
+<script src="js/infracciones.js?v=13.6.3"></script>
+<script src="js/viajes.js?v=13.6.3"></script>
+<script src="js/proximos.js?v=13.6.3"></script>
+<script src="js/documentos.js?v=13.6.3"></script>
+<script src="js/flujo.js?v=13.6.3"></script>
+<script>
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v=>v.style.display='none');
+  document.querySelectorAll('nav button, .sidebar button').forEach(b=>b.classList.remove('active'));
+  const v=document.getElementById('view-'+name); if(v) v.style.display='block';
+  const b=document.getElementById('btn-nav-'+name); if(b) b.classList.add('active');
+  if(name==='flota') renderFlota();
+  if(name==='combustible') renderCombustible();
+  if(name==='rutas'){ renderRutas(); setTimeout(function(){ if(typeof mapaRutasInstance!=='undefined' && mapaRutasInstance) mapaRutasInstance.invalidateSize(); },200); }
+  if(name==='talleres') renderTalleres();
+  if(name==='choferes') renderChoferes();
+  if(name==='mantenimientos' && typeof renderMantenimientos==='function') renderMantenimientos();
+  if(name==='seguros' && typeof renderSeguros==='function') renderSeguros();
+  if(name==='impuestos' && typeof renderImpuestos==='function') renderImpuestos();
+  if(name==='infracciones' && typeof renderInfracciones==='function') renderInfracciones();
+  if(name==='proximos' && typeof renderProximos==='function') renderProximos();
+  if(name==='viajes' && typeof renderViajes==='function') renderViajes();
+  if(name==='documentos' && typeof renderDocumentos==='function') renderDocumentos();
+  if(name==='gps' && typeof renderGPSTracking==='function') renderGPSTracking();
+  if(name==='flujo' && typeof renderFlujo==='function') renderFlujo();
+  if(name==='dashboard' && typeof renderDashboardKPIs==='function') renderDashboardKPIs();
+}
+window.addEventListener('DOMContentLoaded',function(){ switchView('flota'); console.log('[V13.6.3] Layout Sidebar + Top OK'); });
+</script>
 </body>
 </html>
